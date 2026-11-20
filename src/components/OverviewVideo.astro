@@ -1,0 +1,16 @@
+---
+import { media } from "../lib/media";
+import VideoPlayer from "./VideoPlayer.astro";
+interface Props {
+  src?: string;
+}
+const { src = media("videos/overview.mp4") } = Astro.props;
+---
+
+<figure id="overview" class="overview-film not-prose">
+  <VideoPlayer src={src} title="FlexWAM research overview" hasAudio />
+  <figcaption>
+    <span>Research overview</span>
+    <span>Precision insertion · Bimanual manipulation · Dynamic sorting</span>
+  </figcaption>
+</figure>

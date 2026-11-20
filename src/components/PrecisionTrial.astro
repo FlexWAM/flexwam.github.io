@@ -1,0 +1,263 @@
+---
+import VideoPlayer from "./VideoPlayer.astro";
+import { media } from "../lib/media";
+interface Props {
+  task: "cable" | "peg-l";
+}
+const { task } = Astro.props;
+const cable = task === "cable";
+const title = cable ? "Ethernet cable insertion" : "L-shaped peg insertion";
+// Main-paper Table 1, FlexWAM (LingBot) and pi_0.5; 20 trials per task.
+const ours = cable ? 75 : 95;
+const baseline = cable ? 35 : 50;
+---
+
+<figure class="precision-trial">
+  <figcaption class="precision-heading">
+    <div class="precision-task">
+      <p class="precision-kicker">Flexiv · Consecutive successes</p>
+      <h3>{title}</h3>
+      <p class="precision-description">
+        {
+          cable
+            ? "Connector–port alignment and insertion under tight positional and angular tolerances."
+            : "L-shaped peg insertion at 20 μm clearance, requiring precise position and orientation alignment."
+        }
+      </p>
+    </div>
+    <div
+      class="precision-metrics"
+      aria-label={cable
+        ? "Approximate alignment tolerance: plus or minus 0.1 millimeters and at most 1 degree"
+        : "Clearance: 0.02 millimeters"}
+    >
+      {
+        cable ? (
+          <>
+            <div>
+              <>
+                <strong>
+                  ±0.1<span> mm</span>
+                </strong>
+                <span>Position</span>
+              </>
+            </div>
+            <div>
+              <>
+                <strong>
+                  ≤1<span>°</span>
+                </strong>
+                <span>Orientation</span>
+              </>
+            </div>
+            <p>Approximate alignment tolerance</p>
+          </>
+        ) : (
+          <>
+            <div>
+              <>
+                <strong>
+                  0.02<span> mm</span>
+                </strong>
+                <span>Peg–hole clearance</span>
+              </>
+            </div>
+          </>
+        )
+      }
+    </div>
+  </figcaption>
+  <VideoPlayer src={media(`videos/success/${task}-intro.mp4`)} title={title} />
+  <div class="trial-results" aria-label={`${title} success rate comparison`}>
+    <div class="result-label">
+      <span>Task success rate</span>
+      <p>20 randomized trials per method</p>
+    </div>
+    <div class="result-method result-ours">
+      <span>FlexWAM <small>(LingBot)</small></span>
+      <strong>{ours}<small>%</small></strong>
+    </div>
+    <div class="result-method result-baseline">
+      <span>π<sub>0.5</sub></span>
+      <strong>{baseline}<small>%</small></strong>
+    </div>
+    <div class="result-gain">
+      <span>+{ours - baseline} pp</span>
+      <small>over π<sub>0.5</sub></small>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .precision-trial {
+    margin: 0;
+    min-width: 0;
+  }
+  .precision-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 1.3rem;
+  }
+  .precision-task {
+    flex: 1;
+    min-width: 0;
+  }
+  .precision-kicker {
+    margin: 0 0 0.45rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: #58718b;
+  }
+  h3 {
+    margin: 0;
+    color: #142d50;
+    font-size: clamp(1.25rem, 2vw, 1.65rem);
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+  }
+  .precision-description {
+    max-width: 29rem;
+    margin: 0.65rem 0 0;
+    color: #657488;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .precision-metrics {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 1.5rem;
+    row-gap: 0.35rem;
+    padding: 0.6rem 0 0.6rem 1.75rem;
+    border-left: 2px solid #d7e6fa;
+    max-width: 24rem;
+  }
+  .precision-metrics > div {
+    display: flex;
+    flex-direction: column;
+  }
+  strong {
+    color: #2362ca;
+    font-size: clamp(2.4rem, 4vw, 3.4rem);
+    line-height: 1.12;
+    font-weight: 750;
+    letter-spacing: -0.065em;
+    white-space: nowrap;
+  }
+  strong span {
+    font-size: 0.48em;
+    letter-spacing: -0.02em;
+    font-weight: 550;
+  }
+  .precision-metrics > div > span {
+    color: #63738b;
+    font-size: 0.73rem;
+    margin-top: 0.3rem;
+  }
+  .precision-metrics p {
+    flex: 0 0 100%;
+    font-size: 0.66rem;
+    color: #718097;
+    margin: 0.3rem 0 0;
+  }
+  .trial-results {
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) auto auto auto;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 1rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid #e1e9f3;
+    border-radius: 0.85rem;
+    background: linear-gradient(110deg, #f1f6ff, #fcfdff 65%);
+  }
+  .result-label > span {
+    font-weight: 650;
+    color: #243c60;
+    font-size: 0.85rem;
+  }
+  .result-label p {
+    margin: 0.3rem 0 0;
+    font-size: 0.7rem;
+    color: #708097;
+  }
+  .result-method {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .result-method > span {
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: #2362ca;
+    white-space: nowrap;
+  }
+  .result-method > span small {
+    font-size: 0.65rem;
+    font-weight: 450;
+  }
+  .result-method strong {
+    font-size: 2.5rem;
+  }
+  .result-method strong small {
+    font-size: 1.2rem;
+    margin-left: 0.12rem;
+    font-weight: 500;
+  }
+  .result-baseline > span,
+  .result-baseline strong {
+    color: #827660;
+  }
+  .result-gain {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .result-gain > span {
+    color: #2362ca;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 2rem;
+    padding: 0.3rem 0.75rem;
+    background: #e2edff;
+    white-space: nowrap;
+  }
+  .result-gain > small {
+    font-size: 0.65rem;
+    color: #708097;
+  }
+  @media (max-width: 800px) {
+    .trial-results {
+      grid-template-columns: 1fr 1fr auto;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .result-label {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 640px) {
+    .precision-heading {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .precision-metrics {
+      padding: 0 0 0 1rem;
+      justify-content: flex-start;
+    }
+    strong {
+      font-size: 2.6rem;
+    }
+    .precision-description {
+      font-size: 0.85rem;
+    }
+  }
+</style>

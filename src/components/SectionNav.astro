@@ -1,0 +1,106 @@
+---
+const sections = [
+  { label: "Overview", href: "#overview" },
+  { label: "Precision tests", href: "#consecutive-successes" },
+  { label: "Method", href: "#method" },
+  { label: "Experiments", href: "#experiments" },
+
+  { label: "Routing", href: "#routing" },
+  { label: "Evaluation", href: "#same-scene-baselines" },
+  { label: "BibTeX", href: "#bibtex" },
+];
+---
+
+<nav
+  class="site-nav not-prose sticky top-0 z-50 border-b border-zinc-200/80 bg-white/85 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85"
+  aria-label="Page sections"
+>
+  <div
+    class="mx-auto flex h-14 max-w-[72rem] items-center justify-between gap-4 px-4 sm:px-6"
+  >
+    <a
+      href="#top"
+      class="shrink-0 text-sm font-bold tracking-tight text-zinc-950 hover:text-blue-600 dark:text-white dark:hover:text-blue-300"
+    >
+      FlexWAM
+    </a>
+    <div
+      class="section-nav-scroll flex min-w-0 items-center justify-start gap-1 overflow-x-auto"
+    >
+      {
+        sections.map((section) => (
+          <a
+            href={section.href}
+            data-section-link
+            class="rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+          >
+            {section.label}
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</nav>
+
+<script>
+  const links = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>("[data-section-link]"),
+  );
+  const sections = links
+    .map((link) => document.querySelector<HTMLElement>(link.hash))
+    .filter((section): section is HTMLElement => section !== null);
+
+  const setActive = (id: string) => {
+    links.forEach((link) => {
+      const active = link.hash === `#${id}`;
+      link.classList.toggle("section-link-active", active);
+      if (active) {
+        link.setAttribute("aria-current", "location");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  };
+
+  let activeId = "";
+  let scheduled = false;
+  const updateActive = () => {
+    scheduled = false;
+    let current = sections[0];
+    for (const section of sections) {
+      if (section.getBoundingClientRect().top <= 190) current = section;
+    }
+    if (current && current.id !== activeId) {
+      activeId = current.id;
+      setActive(activeId);
+      const activeLink = links.find((link) => link.hash === `#${activeId}`);
+      const scroller = activeLink?.parentElement;
+      if (
+        activeLink &&
+        scroller &&
+        scroller.scrollWidth > scroller.clientWidth
+      ) {
+        const offset =
+          activeLink.getBoundingClientRect().left -
+          scroller.getBoundingClientRect().left;
+        scroller.scrollTo({
+          left:
+            scroller.scrollLeft +
+            offset -
+            scroller.clientWidth / 2 +
+            activeLink.offsetWidth / 2,
+          behavior: "instant",
+        });
+      }
+    }
+  };
+  const schedule = () => {
+    if (!scheduled) {
+      scheduled = true;
+      requestAnimationFrame(updateActive);
+    }
+  };
+  document.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", schedule);
+  updateActive();
+</script>

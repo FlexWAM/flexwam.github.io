@@ -1,0 +1,296 @@
+---
+interface Props {
+  src: string;
+  title: string;
+  autoplay?: boolean;
+  hasAudio?: boolean;
+}
+const { src, title, autoplay = true, hasAudio = false } = Astro.props;
+const isRouting = src.includes("/router/");
+// Evaluation compilations already contain stage-specific speedups and labels.
+// Play those files at 1x; only raw router/baseline clips get an extra 2x or 3x.
+const isTaskVideo = isRouting || src.includes("/baseline/");
+const isPiperTask = /\/(?:pencil|conveyor)-/.test(src);
+const initialPlaybackRate = isTaskVideo ? (isPiperTask ? 3 : 2) : 1;
+const isFourThree =
+  src.includes("/baseline/pencil-") || src.includes("/baseline/conveyor-");
+const width = isRouting ? 960 : isFourThree ? 640 : 1920;
+const height = isRouting
+  ? src.includes("/router/compact/")
+    ? 1258
+    : 1488
+  : isFourThree
+    ? 480
+    : 1080;
+const poster = src.replace("/videos/", "/posters/").replace(/\.mp4$/, ".jpg");
+---
+
+<div
+  class="video-player"
+  data-autoplay={autoplay}
+  data-playback-rate={initialPlaybackRate}
+>
+  <div
+    class:list={["video-frame", isRouting && "routing-frame"]}
+    style={`--video-aspect: ${width / height}; aspect-ratio: ${width} / ${height}`}
+  >
+    <video
+      width={width}
+      height={height}
+      style={`aspect-ratio: ${width} / ${height}`}
+      data-src={src}
+      poster={poster}
+      aria-label={title}
+      controls
+      muted
+      loop
+      playsinline
+      preload="none"><a href={src}>Watch {title}</a></video
+    >
+    {
+      isTaskVideo && (
+        <span class="autonomy-badge">Autonomous {initialPlaybackRate}x</span>
+      )
+    }
+  </div>
+  <noscript><p><a href={src}>Watch {title}</a></p></noscript>
+  <div class="video-controls" hidden>
+    <button
+      type="button"
+      class="play-toggle"
+      aria-label={`Play ${title}`}
+      title="Play / pause"
+    >
+      <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"
+        ><path d="m8 5 11 7-11 7Z"></path></svg
+      >
+      <svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"
+        ><path d="M7 5h3v14H7zm7 0h3v14h-3z"></path></svg
+      >
+    </button>
+    <input
+      class="video-seek"
+      type="range"
+      min="0"
+      max="100"
+      step="0.1"
+      value="0"
+      aria-label={`Seek ${title}`}
+    />
+    <span class="video-time" aria-hidden="true">0:00</span>
+    <button
+      type="button"
+      class="speed-toggle"
+      aria-label={`Playback speed for ${title}: ${initialPlaybackRate}×`}
+      title="Change playback speed">{initialPlaybackRate}×</button
+    >
+    {
+      hasAudio && (
+        <button
+          type="button"
+          class="mute-toggle"
+          aria-label={`Unmute ${title}`}
+          title="Toggle sound"
+        >
+          Sound off
+        </button>
+      )
+    }
+    <button
+      type="button"
+      class="fullscreen-toggle"
+      aria-label={`Fullscreen ${title}`}
+      title="Fullscreen"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"
+        ><path
+          d="M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4"
+          stroke="currentColor"
+          stroke-width="1.7"></path></svg
+      >
+    </button>
+  </div>
+  <p class="video-error" role="status" hidden>
+    <span class="video-error-message">Unable to load this video.</span>
+    <button type="button" class="video-retry">Retry</button>
+    <a href={src}>Open video</a>
+  </p>
+</div>
+
+<script>
+  const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const formatTime = (seconds: number) =>
+    `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, "0")}`;
+
+  document.querySelectorAll<HTMLElement>(".video-player").forEach((player) => {
+    const video = player.querySelector("video")!;
+    const controls = player.querySelector<HTMLElement>(".video-controls")!;
+    const toggle = player.querySelector<HTMLButtonElement>(".play-toggle")!;
+    const seek = player.querySelector<HTMLInputElement>(".video-seek")!;
+    const time = player.querySelector<HTMLElement>(".video-time")!;
+    const speed = player.querySelector<HTMLButtonElement>(".speed-toggle")!;
+    const errorNotice = player.querySelector<HTMLElement>(".video-error")!;
+    const errorMessage = player.querySelector<HTMLElement>(
+      ".video-error-message",
+    )!;
+    const retry = player.querySelector<HTMLButtonElement>(".video-retry")!;
+    const autonomyBadge = player.querySelector<HTMLElement>(".autonomy-badge");
+    const initialRate = Number(player.dataset.playbackRate) || 1;
+    video.defaultPlaybackRate = initialRate;
+    video.playbackRate = initialRate;
+    const mute = player.querySelector<HTMLButtonElement>(".mute-toggle");
+    mute?.addEventListener("click", () => {
+      video.muted = !video.muted;
+      mute.textContent = video.muted ? "Sound off" : "Sound on";
+      mute.setAttribute(
+        "aria-label",
+        `${video.muted ? "Unmute" : "Mute"} ${video.getAttribute("aria-label")}`,
+      );
+    });
+    const fullscreen =
+      player.querySelector<HTMLButtonElement>(".fullscreen-toggle")!;
+    let manuallyPaused = false;
+    let inView = false;
+    const clearError = () => {
+      errorNotice.hidden = true;
+    };
+    const load = (force = false) => {
+      if (
+        (force || video.error || !video.getAttribute("src")) &&
+        video.dataset.src
+      ) {
+        clearError();
+        video.src = video.dataset.src;
+        video.load();
+      }
+    };
+    const play = () => {
+      load();
+      void video.play().catch(() => undefined);
+    };
+    const visible = () => !player.closest("[hidden]") && !document.hidden;
+    const updatePlayback = () => {
+      if (!visible() || !inView) video.pause();
+      else if (
+        !motion.matches &&
+        !manuallyPaused &&
+        player.dataset.autoplay === "true"
+      )
+        play();
+    };
+    video.controls = false;
+    controls.hidden = false;
+    const updateState = () => {
+      player.classList.toggle("is-playing", !video.paused);
+      toggle.setAttribute(
+        "aria-label",
+        `${video.paused ? "Play" : "Pause"} ${video.getAttribute("aria-label")}`,
+      );
+    };
+    video.addEventListener("play", updateState);
+    video.addEventListener("pause", updateState);
+    video.addEventListener("loadeddata", clearError);
+    video.addEventListener("playing", clearError);
+    toggle.addEventListener("click", () => {
+      manuallyPaused = !video.paused;
+      if (video.paused) play();
+      else video.pause();
+    });
+    video.addEventListener("timeupdate", () => {
+      if (Number.isFinite(video.duration))
+        seek.value = String((video.currentTime / video.duration) * 100);
+      time.textContent = formatTime(video.currentTime);
+      seek.setAttribute(
+        "aria-valuetext",
+        `${formatTime(video.currentTime)} of ${formatTime(video.duration || 0)}`,
+      );
+    });
+    seek.addEventListener("input", () => {
+      load();
+      if (Number.isFinite(video.duration))
+        video.currentTime = (Number(seek.value) / 100) * video.duration;
+    });
+    const updateSpeedLabel = () => {
+      speed.textContent = `${video.playbackRate}×`;
+      speed.setAttribute(
+        "aria-label",
+        `Playback speed for ${video.getAttribute("aria-label")}: ${video.playbackRate}×`,
+      );
+      if (autonomyBadge)
+        autonomyBadge.textContent = `Autonomous ${video.playbackRate}x`;
+    };
+    video.addEventListener("ratechange", updateSpeedLabel);
+    speed.addEventListener("click", () => {
+      const rates = [1, 1.5, 2, 3, 0.5];
+      const nextRate =
+        rates[(rates.indexOf(video.playbackRate) + 1) % rates.length];
+      video.defaultPlaybackRate = nextRate;
+      video.playbackRate = nextRate;
+      updateSpeedLabel();
+    });
+    fullscreen.addEventListener("click", async () => {
+      load();
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else if (player.requestFullscreen) await player.requestFullscreen();
+        else {
+          const iosVideo = video as HTMLVideoElement & {
+            webkitEnterFullscreen?: () => void;
+          };
+          iosVideo.webkitEnterFullscreen?.();
+        }
+      } catch {
+        /* Native fullscreen may be unavailable in embedded previews. */
+      }
+    });
+    video.addEventListener("error", () => {
+      const error = video.error;
+      // An interrupted request is not a corrupt or unsupported video.
+      if (!error || error.code === MediaError.MEDIA_ERR_ABORTED) return;
+      const messages: Record<number, string> = {
+        [MediaError.MEDIA_ERR_NETWORK]:
+          "Video loading was interrupted. Please retry.",
+        [MediaError.MEDIA_ERR_DECODE]:
+          "This browser could not decode the video. Please retry or open it directly.",
+        [MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED]:
+          "The video could not be loaded, or its format is not supported by this browser.",
+      };
+      errorMessage.textContent =
+        messages[error.code] || "Unable to load this video. Please retry.";
+      errorNotice.hidden = false;
+      updateState();
+      console.warn("Video playback failed", {
+        src: video.currentSrc || video.dataset.src,
+        code: error.code,
+        message: error.message,
+      });
+    });
+    retry.addEventListener("click", () => {
+      manuallyPaused = false;
+      load(true);
+      play();
+    });
+    player.addEventListener("panelchange", updatePlayback);
+    player.addEventListener("restart", () => {
+      load();
+      video.currentTime = 0;
+      manuallyPaused = false;
+      play();
+    });
+    document.addEventListener("visibilitychange", updatePlayback);
+    motion.addEventListener("change", () => {
+      if (motion.matches) video.pause();
+      else updatePlayback();
+    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        inView = entries[0].isIntersecting;
+        updatePlayback();
+      },
+      { threshold: 0.15 },
+    );
+    observer.observe(player);
+  });
+</script>

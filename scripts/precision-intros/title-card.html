@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>FlexWAM precision test title card</title>
+  <style>
+    @font-face {
+      font-family: Noto;
+      src: url("../../public/fonts/noto-sans-latin.woff2");
+      font-weight: 100 900;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+    }
+    body {
+      background: #0b1727;
+      color: white;
+      font-family: Noto, sans-serif;
+    }
+    .scene {
+      position: absolute;
+      inset: -25px;
+      width: 1970px;
+      height: 1130px;
+      object-fit: cover;
+      filter: blur(15px);
+      opacity: 0.23;
+    }
+    .shade {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #0a172744, #06112355 55%, #061123ef);
+    }
+    .brand {
+      position: absolute;
+      left: 80px;
+      top: 54px;
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+    .brand span {
+      color: #8ed8ff;
+    }
+    .eyebrow {
+      position: absolute;
+      right: 80px;
+      top: 68px;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      color: #c0d3e6;
+    }
+    .object {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 30px 35px #0009);
+    }
+    .peg {
+      width: 940px;
+      height: 648px;
+      top: 103px;
+    }
+    .cable {
+      width: 1180px;
+      height: 645px;
+      top: 110px;
+    }
+    .copy {
+      position: absolute;
+      top: 766px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 64px;
+      font-weight: 750;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      margin: 0;
+    }
+    .line {
+      width: 108px;
+      height: 4px;
+      margin: 24px auto 12px;
+      background: #6ccaff;
+      border-radius: 3px;
+    }
+    .metrics {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+    }
+    .value {
+      color: #8bddff;
+      font-size: 93px;
+      line-height: 1.1;
+      font-weight: 750;
+      letter-spacing: -0.055em;
+    }
+    .value small {
+      font-size: 45px;
+      letter-spacing: -0.02em;
+    }
+    .divider {
+      color: #54738e;
+      font-size: 50px;
+      font-weight: 200;
+    }
+    .label {
+      font-size: 22px;
+      color: #c3d2e2;
+      margin: 8px 0 0;
+      letter-spacing: 0.025em;
+    }
+    .target {
+      fill: none;
+      stroke: #8bddff;
+      stroke-width: 5;
+    }
+  </style>
+  <img class="scene" id="scene" alt="" />
+  <div class="shade"></div>
+  <div class="brand">Flex<span>WAM</span></div>
+  <div class="eyebrow">RANDOMIZED PRECISION TEST</div>
+  <div id="object"></div>
+  <div class="copy">
+    <h1 id="title"></h1>
+    <div class="line"></div>
+    <div class="metrics" id="metrics"></div>
+    <p class="label" id="label"></p>
+  </div>
+  <script>
+    // Clip original PPT photos in SVG; preserve every component and hole exactly.
+    const cable = new URLSearchParams(location.search).get("task") === "cable";
+    document.querySelector("#scene").src = cable
+      ? "cable-scene.png"
+      : "peg-scene.png";
+    document.querySelector("#title").textContent = cable
+      ? "Ethernet Cable Insertion"
+      : "L-Shaped Peg Insertion";
+    document.querySelector("#label").textContent = cable
+      ? "Approximate alignment tolerance"
+      : "Peg–hole clearance · 20 μm";
+    document.querySelector("#metrics").innerHTML = cable
+      ? '<span class="value">±0.1<small> mm</small></span><span class="divider">/</span><span class="value">≤1<small>°</small></span>'
+      : '<span class="value">0.02<small> mm</small></span>';
+    const viewBox = cable ? "94 236 1627 890" : "116 342 1090 751";
+    const polygon = cable
+      ? "94,1043 111,979 315,454 344,385 392,355 432,350 440,310 906,308 914,352 1195,347 1210,322 1265,324 1288,245 1419,236 1443,359 1480,363 1562,487 1718,1026 1712,1080 1660,1106 152,1124 109,1102"
+      : "126,344 1200,342 1204,1092 117,1085";
+    document.querySelector("#object").innerHTML =
+      `<svg class="object ${cable ? "cable" : "peg"}" viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg">
+    <defs><clipPath id="board"><polygon points="${polygon}"/></clipPath></defs>
+    <image href="../../public/images/precision/${cable ? "cable" : "peg"}-board.jpg" width="${cable ? 2048 : 1706}" height="${cable ? 1153 : 1279}" clip-path="url(#board)"/>
+    ${cable ? '<rect class="target" x="591" y="871" width="216" height="99" rx="8"/>' : '<rect class="target" x="193" y="390" width="137" height="106" rx="13"/>'}
+  </svg>`;
+  </script>
+</html>

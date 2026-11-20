@@ -1,0 +1,37 @@
+---
+import TaskSwitch from "./TaskSwitch.astro";
+import { media } from "../lib/media";
+
+const methods = [
+  { id: "wan", title: "FlexWAM (Wan)", ours: true },
+  { id: "lingbot", title: "FlexWAM (LingBot)", ours: true },
+  { id: "pi", title: "π₀.₅", ours: false },
+  { id: "fastwam", title: "Fast-WAM", ours: false },
+  { id: "openwam", title: "OpenWAM", ours: false },
+  { id: "lawam", title: "LaWAM", ours: false },
+];
+const tasks = [
+  { id: "cable", label: "Cable insertion", detail: "Flexiv · 20 trials" },
+  { id: "peg-l", label: "Peg-in-hole (L)", detail: "Flexiv · 20 trials" },
+  {
+    id: "peg-round",
+    label: "Peg-in-hole (round)",
+    detail: "Flexiv · 20 trials",
+  },
+  { id: "pencil", label: "Pencil case", detail: "PiPER · 20 trials" },
+  { id: "conveyor", label: "Conveyor sorting", detail: "PiPER · 100 blocks" },
+];
+const panels = tasks.map((task) => ({
+  id: task.id,
+  label: task.label,
+  clips: methods.map((method) => ({
+    src: media(`videos/evaluation/${task.id}-${method.id}.mp4`),
+    title: method.title,
+    detail: task.detail,
+    badge: method.ours ? "Ours" : undefined,
+    tone: method.ours ? ("ours" as const) : ("neutral" as const),
+  })),
+}));
+---
+
+<TaskSwitch name="Evaluation cases" columns={4} panels={panels} />

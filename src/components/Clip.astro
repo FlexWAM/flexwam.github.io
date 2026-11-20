@@ -1,0 +1,22 @@
+---
+import VideoPlayer from "./VideoPlayer.astro";
+interface Props {
+  src: string;
+  title: string;
+  detail?: string;
+  badge?: string;
+  tone?: "ours" | "fail" | "neutral";
+}
+const { src, title, detail, badge, tone = "neutral" } = Astro.props;
+---
+
+<figure class="clip">
+  <figcaption class="clip-caption">
+    <div>
+      <p class="clip-title">{title}</p>
+      {detail && <p class="clip-detail">{detail}</p>}
+    </div>
+    {badge && <span class:list={["clip-badge", tone]}>{badge}</span>}
+  </figcaption>
+  <VideoPlayer src={src} title={`${title}${detail ? ` — ${detail}` : ""}`} />
+</figure>

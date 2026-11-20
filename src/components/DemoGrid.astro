@@ -1,0 +1,30 @@
+---
+interface DemoItem {
+  title: string;
+  platform: string;
+}
+
+interface Props {
+  items: DemoItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<div
+  class="not-prose mx-auto my-8 grid w-full max-w-none grid-cols-1 gap-4 sm:grid-cols-2"
+>
+  {
+    items.map((item) => (
+      <figure class="overflow-hidden rounded-2xl border border-zinc-200/90 bg-zinc-950 dark:border-zinc-700">
+        <div class="flex aspect-video flex-col items-center justify-center gap-2 bg-[linear-gradient(160deg,rgb(24_24_27),rgb(15_23_42))] px-6 text-center">
+          <span class="text-[11px] font-semibold tracking-[0.16em] text-blue-200/80 uppercase">
+            {item.platform}
+          </span>
+          <p class="m-0 text-lg font-semibold text-white">{item.title}</p>
+          <p class="m-0 text-sm text-zinc-400">Clip coming soon</p>
+        </div>
+      </figure>
+    ))
+  }
+</div>

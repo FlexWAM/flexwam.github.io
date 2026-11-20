@@ -1,0 +1,190 @@
+---
+import Clip from "./Clip.astro";
+interface ClipItem {
+  src: string;
+  title: string;
+  detail?: string;
+  badge?: string;
+  tone?: "ours" | "fail" | "neutral";
+}
+interface Panel {
+  id: string;
+  label: string;
+  clips: ClipItem[];
+}
+interface Props {
+  panels: Panel[];
+  columns?: 2 | 4;
+  name: string;
+}
+const { panels, columns = 2, name } = Astro.props;
+const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+---
+
+<div
+  class:list={[
+    "task-switch",
+    "not-prose",
+    columns === 2 ? "routing-switch" : "baseline-switch",
+  ]}
+  data-switch={name}
+>
+  <div class="task-toolbar">
+    <div class="task-tabs" role="tablist" aria-label={name}>
+      {
+        panels.map((panel, index) => (
+          <button
+            type="button"
+            role="tab"
+            class="task-chip"
+            id={`${id}-tab-${panel.id}`}
+            data-task={panel.id}
+            aria-controls={`${id}-panel-${panel.id}`}
+            aria-selected={index === 0}
+            tabindex={index === 0 ? 0 : -1}
+          >
+            {panel.label}
+          </button>
+        ))
+      }
+    </div>
+    <button
+      type="button"
+      class="restart-videos"
+      aria-label={`Restart ${name.toLowerCase()} videos together`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"
+        ><path
+          d="M4 10a8 8 0 1 1 1 7M4 4v6h6"
+          stroke="currentColor"
+          stroke-width="1.6"></path></svg
+      >
+      Replay together
+    </button>
+  </div>
+  {
+    panels.map((panel, index) => (
+      <div
+        class:list={["task-panel", columns === 4 ? "four-clips" : "two-clips"]}
+        id={`${id}-panel-${panel.id}`}
+        role="tabpanel"
+        aria-labelledby={`${id}-tab-${panel.id}`}
+        data-panel={panel.id}
+        hidden={index !== 0}
+        tabindex="0"
+      >
+        {panel.clips.map((clip) => (
+          <Clip {...clip} />
+        ))}
+      </div>
+    ))
+  }
+  <div class="carousel-navigation" aria-label={`${name} carousel controls`}>
+    <button type="button" class="carousel-previous" aria-label="Previous video"
+      ><svg viewBox="0 0 24 24" aria-hidden="true"
+        ><path d="m14 6-6 6 6 6"></path></svg
+      ></button
+    >
+    <span class="carousel-position" aria-live="polite"
+      >1 / {panels[0].clips.length}</span
+    >
+    <button type="button" class="carousel-next" aria-label="Next video"
+      ><svg viewBox="0 0 24 24" aria-hidden="true"
+        ><path d="m10 6 6 6-6 6"></path></svg
+      ></button
+    >
+  </div>
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>(".task-switch").forEach((root) => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    const previous =
+      root.querySelector<HTMLButtonElement>(".carousel-previous")!;
+    const next = root.querySelector<HTMLButtonElement>(".carousel-next")!;
+    const position = root.querySelector<HTMLElement>(".carousel-position")!;
+    const navigation = root.querySelector<HTMLElement>(".carousel-navigation")!;
+    const activePanel = () => panels.find((panel) => !panel.hidden)!;
+    const updateCarousel = () => {
+      const panel = activePanel();
+      const overflow = panel.scrollWidth - panel.clientWidth;
+      navigation.hidden = overflow < 4;
+      previous.disabled = panel.scrollLeft < 4;
+      next.disabled = panel.scrollLeft >= overflow - 4;
+      const clips = [...panel.querySelectorAll<HTMLElement>(".clip")];
+      const step =
+        clips.length > 1
+          ? clips[1].offsetLeft - clips[0].offsetLeft
+          : panel.clientWidth;
+      const index = Math.min(
+        clips.length - 1,
+        Math.round(panel.scrollLeft / step),
+      );
+      position.textContent = `${index + 1} / ${clips.length}`;
+    };
+    const move = (direction: number) => {
+      const panel = activePanel();
+      const clips = [...panel.querySelectorAll<HTMLElement>(".clip")];
+      const step =
+        clips.length > 1
+          ? clips[1].offsetLeft - clips[0].offsetLeft
+          : panel.clientWidth;
+      panel.scrollBy({
+        left: direction * step,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+      });
+    };
+    previous.addEventListener("click", () => move(-1));
+    next.addEventListener("click", () => move(1));
+    panels.forEach((panel) => {
+      panel.addEventListener("scroll", updateCarousel, { passive: true });
+      panel.addEventListener("keydown", (event) => {
+        if (event.target !== panel) return;
+        if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+          event.preventDefault();
+          move(event.key === "ArrowRight" ? 1 : -1);
+        }
+      });
+    });
+    new ResizeObserver(updateCarousel).observe(root);
+    const select = (tab: HTMLButtonElement) => {
+      tabs.forEach((item) => {
+        const active = item === tab;
+        item.setAttribute("aria-selected", String(active));
+        item.tabIndex = active ? 0 : -1;
+      });
+      panels.forEach((panel) => {
+        panel.hidden = panel.dataset.panel !== tab.dataset.task;
+        panel
+          .querySelectorAll<HTMLElement>(".video-player")
+          .forEach((player) => player.dispatchEvent(new Event("panelchange")));
+      });
+      activePanel().scrollLeft = 0;
+      updateCarousel();
+    };
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => select(tab));
+      tab.addEventListener("keydown", (event) => {
+        let next: number;
+        if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+        else if (event.key === "ArrowLeft")
+          next = (index - 1 + tabs.length) % tabs.length;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = tabs.length - 1;
+        else return;
+        event.preventDefault();
+        tabs[next].focus();
+        select(tabs[next]);
+      });
+    });
+    root.querySelector(".restart-videos")?.addEventListener("click", () => {
+      root
+        .querySelectorAll<HTMLElement>(
+          '[role="tabpanel"]:not([hidden]) .video-player',
+        )
+        .forEach((player) => player.dispatchEvent(new Event("restart")));
+    });
+  });
+</script>

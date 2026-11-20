@@ -1,0 +1,163 @@
+---
+interface Method {
+  id: string;
+  label: string;
+  color: string;
+  ours?: boolean;
+}
+
+interface TaskGroup {
+  label: string;
+  values: number[];
+}
+
+const methods: Method[] = [
+  { id: "fast", label: "Fast-WAM", color: "#d4d4d8" },
+  { id: "open", label: "OpenWAM", color: "#a1a1aa" },
+  { id: "lawam", label: "LaWAM", color: "#71717a" },
+  { id: "pi", label: "π₀.₅", color: "#d6c6a8" },
+  { id: "wan", label: "FlexWAM (Wan)", color: "#3b82f6", ours: true },
+  { id: "lingbot", label: "FlexWAM (LingBot)", color: "#1e3a8a", ours: true },
+];
+
+const platforms: { name: string; detail: string; groups: TaskGroup[] }[] = [
+  {
+    name: "Flexiv",
+    detail: "Single-arm",
+    groups: [
+      { label: "Cable insertion", values: [55.0, 40.0, 5.0, 35.0, 60.0, 75.0] },
+      { label: "Peg-in-hole (L)", values: [60.0, 70.0, 5.0, 50.0, 95.0, 95.0] },
+      {
+        label: "Peg-in-hole (round)",
+        values: [55.0, 50.0, 20.0, 50.0, 80.0, 100.0],
+      },
+    ],
+  },
+  {
+    name: "PiPER",
+    detail: "Dual-arm",
+    groups: [
+      { label: "Pens placement", values: [60.0, 67.5, 67.5, 62.5, 80.0, 72.5] },
+      {
+        label: "Pencil case overall",
+        values: [40.0, 55.0, 40.0, 55.0, 65.0, 60.0],
+      },
+      {
+        label: "Conveyor sorting",
+        values: [80.0, 89.0, 67.0, 88.0, 86.0, 89.0],
+      },
+    ],
+  },
+];
+
+const ticks = [100, 75, 50, 25, 0];
+---
+
+<div class="success-charts not-prose">
+  <div class="chart-legend" aria-label="Methods">
+    {
+      methods.map((method) => (
+        <span>
+          <>
+            <i
+              class="chart-swatch"
+              style={`background: ${method.color}`}
+              aria-hidden="true"
+            />
+            <span class:list={[method.ours && "font-semibold"]}>
+              {method.label}
+            </span>
+          </>
+        </span>
+      ))
+    }
+  </div>
+  <div class="platform-charts">
+    {
+      platforms.map((platform) => (
+        <figure
+          class="platform-chart"
+          aria-label={`${platform.name} success rates; exact values in the table below`}
+        >
+          <figcaption class="chart-heading">
+            <>
+              <h3>
+                {platform.name} <span>· {platform.detail}</span>
+              </h3>
+              <span>Success rate (%)</span>
+            </>
+          </figcaption>
+          <div class="chart-plot" aria-hidden="true">
+            <div class="chart-ticks">
+              {ticks.map((tick) => (
+                <span>{tick}</span>
+              ))}
+            </div>
+            <div class="chart-area">
+              <div class="chart-grid">
+                {ticks.map(() => (
+                  <span />
+                ))}
+              </div>
+              <div class="chart-groups">
+                {platform.groups.map((group) => (
+                  <div class="chart-group">
+                    {methods.map((method, index) => (
+                      <div
+                        class="chart-bar"
+                        style={`height: ${group.values[index]}%; background: ${method.color}`}
+                        title={`${group.label} — ${method.label}: ${group.values[index]}%`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div class="chart-labels" aria-hidden="true">
+            {platform.groups.map((group) => (
+              <span>{group.label}</span>
+            ))}
+          </div>
+        </figure>
+      ))
+    }
+  </div>
+  <details class="result-data">
+    <summary>View numerical results</summary>
+    <div class="result-table-scroll">
+      <table>
+        <caption class="sr-only"
+          >Real-world task success rates, in percent. Pens placement is excluded
+          from the five-task mean.</caption
+        >
+        <thead
+          ><tr
+            ><th scope="col">Method</th>{
+              platforms
+                .flatMap((platform) => platform.groups)
+                .map((group) => <th scope="col">{group.label}</th>)
+            }<th scope="col">Mean (5 tasks)</th></tr
+          ></thead
+        >
+        <tbody
+          >{
+            methods.map((method, index) => (
+              <tr class:list={[method.ours && "ours-row"]}>
+                <th scope="row">{method.label}</th>
+                {platforms
+                  .flatMap((platform) => platform.groups)
+                  .map((group) => (
+                    <td>{group.values[index].toFixed(1)}</td>
+                  ))}
+                <td>
+                  {[58.0, 60.8, 27.4, 55.6, 77.2, 83.8][index].toFixed(1)}
+                </td>
+              </tr>
+            ))
+          }</tbody
+        >
+      </table>
+    </div>
+  </details>
+</div>

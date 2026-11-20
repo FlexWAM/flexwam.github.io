@@ -1,0 +1,11 @@
+---
+interface Props {
+  fullWidth?: boolean;
+}
+const { fullWidth = false } = Astro.props;
+---
+
+<figure class:list={["research-figure not-prose", fullWidth && "wide-figure"]}>
+  <div class="figure-image"><slot name="figure" /></div>
+  <figcaption><slot name="caption" /></figcaption>
+</figure>
