@@ -79,7 +79,7 @@ import tasks from "./assets/tasks.png";
 
 <div className="section-heading"><h2 id="consecutive-successes">Randomized precision tests</h2><p className="section-subtitle">Consecutive successes</p></div>
 
-Consecutive successful rollouts of Ethernet cable insertion and L-shaped peg insertion on the single-arm Flexiv. Each video retains the resets between trials; the accompanying success rates summarize the full 20-trial evaluation for each method.
+Consecutive successful rollouts of Ethernet cable insertion and [ManipulationNet](https://manipulation-net.org/tasks/peg_in_hole.html) peg-in-hole tasks on the single-arm Flexiv. Select a sequence to watch up to four cable insertions, six L-shaped peg insertions, or five round peg insertions. Each video retains the resets between trials; the accompanying success rates summarize the full 20-trial evaluation for each method.
 
 <div class="success-rollouts not-prose">
   <PrecisionTrial task="cable" />
@@ -102,12 +102,6 @@ Multi-camera observations provide complementary information for manipulation. Gl
 
 **Counterfactual (CF) view credit provides an action-grounded signal for learning camera contributions.** Training with the action loss alone can leave routing weights nearly uniform across observations. FlexWAM measures how the action loss changes when each view’s contribution is suppressed, then uses a critic to turn these evaluations into supervision for the router.
 
-<div className="method-columns not-prose">
-  <div><span className="method-label">01 · Counterfactual evaluation</span><h3>Measure each view’s contribution</h3><p>Starting from uniform reference gates, mask one visual branch at a time in action attention. Hold model parameters and sampled action noise fixed. The change in action loss measures reliance on that view given the remaining inputs.</p></div>
-  <div><span className="method-label">02 · Critic learning</span><h3>Predict normalized view credit</h3><p>Standardize the loss changes across views and train a critic to predict these scores from current-frame visual features. Regression across sampled perturbations encourages the critic to estimate expected normalized CF credit.</p></div>
-  <div><span className="method-label">03 · Router calibration</span><h3>Guide routing with CF credit</h3><p>Convert the critic’s predictions into detached soft targets and calibrate the router with a KL loss alongside the action loss. The predicted view weights bias action-to-view attention according to the current observation.</p></div>
-</div>
-
 <Figure fullWidth>
   <Picture slot="figure" src={framework} alt="FlexWAM architecture: alternating within-view and cross-view attention, critic-guided router calibration, and view-routed action attention." />
   <Fragment slot="caption">FlexWAM framework. Counterfactual view evaluation measures action-loss sensitivity to masking each visual branch. A critic learns normalized view credit and provides soft targets for router calibration. View-Routed Action Attention uses the resulting observation-dependent weights to modulate visual attention in the action expert.</Fragment>
@@ -115,7 +109,6 @@ Multi-camera observations provide complementary information for manipulation. Gl
 
 **View-aware representations support flexible routing.** Each camera stream is encoded independently by a frozen video VAE. Shared video DiT layers alternate within-view and cross-view attention to model local dynamics and integrate complementary context. The router’s log-scaled view gates enter action attention as additive visual-logit biases, preserving relative spatial token preferences within each view.
 
-<p className="research-note"><strong>Training and inference.</strong> Counterfactual evaluations and the critic are used only during training. At inference, future-latent prediction is skipped. The action expert uses current-observation visual features, and routing weights are computed once per observation and reused across all action-denoising steps.</p>
 
 <div className="section-heading"><p className="eyebrow">Real-world evaluation</p><h2 id="experiments">Five tasks across two robot platforms</h2></div>
 
@@ -132,7 +125,6 @@ We compare against three WAM baselines—Fast-WAM, OpenWAM, and LaWAM—and the 
 
 <SuccessChart />
 
-<p className="research-note"><strong>Metric definitions.</strong> The five-task mean uses overall pencil case success, which requires successful packing and zipper closure. Pens placement is the mean placement success rate across the two pens and is reported separately. Conveyor sorting success is the proportion of blocks correctly sorted.</p>
 
 <div className="section-heading"><p className="eyebrow">Visual routing analysis</p><h2 id="routing">Dynamic view weights</h2></div>
 

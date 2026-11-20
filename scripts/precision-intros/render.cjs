@@ -1,27 +1,23 @@
-// Optional media authoring tool: needs playwright-core, Chrome, and ffmpeg.
-// PLAYWRIGHT_MODULE_PATH and FFMPEG may point to existing local installations.
-// Sources: flexwam_release_v16.pptx slide 3 (image3/4.jpeg, image5/6.png).
+// Rebuild the standalone precision tests from the original processed footage.
+// PLAYWRIGHT_MODULE_PATH, CHROME, FFMPEG and PRECISION_SOURCE_DIR are optional.
 const { chromium } = require(
   process.env.PLAYWRIGHT_MODULE_PATH || "playwright-core",
 );
 const { resolve } = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { spawnSync } = require("node:child_process");
-const { mkdirSync } = require("node:fs");
-
-// Seconds in the ORIGINAL recordings, checked at successful insertion followed
-// by gripper release. The 4 s title is added when constructing overlay timings.
-const successTimes = {
-  cable: [5.6, 12.8, 22.2],
-  "peg-l": [8.6, 16.0, 22.8],
-};
-const endHold = 1.5; // Give the final success annotation time to be read.
-const selectedTask = process.argv
+const { mkdirSync, renameSync } = require("node:fs");
+const root = resolve(__dirname, "../..");
+const source =
+  process.env.PRECISION_SOURCE_DIR || resolve(root, "../Flexwam_materials");
+const introDuration = 1.2;
+// Checked against insertion/release frames in the source footage. No trials
+// or reset intervals are removed; the round source has a 2 s black tail.
+const tasks = require("./clips.json");
+const selected = process.argv
   .find((arg) => arg.startsWith("--task="))
   ?.split("=")[1];
-
 (async () => {
-  const root = resolve(__dirname, "../..");
   const browser = await chromium.launch({
     executablePath: process.env.CHROME || "/usr/bin/google-chrome",
     headless: true,
@@ -32,57 +28,89 @@ const selectedTask = process.argv
       viewport: { width: 1920, height: 1080 },
       deviceScaleFactor: 1,
     });
-    const badges = [];
-    mkdirSync(resolve(__dirname, "badges"), { recursive: true });
-    for (let count = 1; count <= 3; count++) {
-      await page.goto(
-        pathToFileURL(resolve(__dirname, "success-badge.html")).href +
-          "?count=" +
-          count,
-      );
-      await page.evaluate(() => document.fonts.ready);
-      const badge = resolve(__dirname, `badges/success-${count}.png`);
-      await page
-        .locator(".badge")
-        .screenshot({ path: badge, omitBackground: true });
-      badges.push(badge);
-    }
-    for (const task of ["cable", "peg-l"]) {
-      if (selectedTask && selectedTask !== task) continue;
+    const overlayDir = resolve(__dirname, "overlays");
+    mkdirSync(overlayDir, { recursive: true });
+    for (const [task, config] of Object.entries(tasks)) {
+      if (selected && !selected.split(",").includes(task)) continue;
+      const totalTrials = config.successes.length;
+      const footageEnd = config.duration + config.hold;
+      const totalDuration = introDuration + footageEnd;
+      if (config.resets.length !== totalTrials - 1)
+        throw new Error(`Invalid reset count: ${task}`);
+      for (let i = 0; i < totalTrials; i++) {
+        const start = i ? config.resets[i - 1][1] : 0;
+        const end = i < totalTrials - 1 ? config.resets[i][0] : config.duration;
+        if (!(start < config.successes[i] && config.successes[i] < end))
+          throw new Error(`Invalid trial timing: ${task} / ${i + 1}`);
+      }
       await page.goto(
         pathToFileURL(resolve(__dirname, "title-card.html")).href +
-          "?task=" +
-          task,
+          `?task=${config.task}`,
       );
       await page.evaluate(async () => {
         await document.fonts.ready;
         await Promise.all([...document.images].map((img) => img.decode()));
+        await Promise.all(
+          [...document.querySelectorAll("svg image")].map(
+            (el) =>
+              new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = el.getAttribute("href");
+              }),
+          ),
+        );
       });
-      // SVG image resources also need to finish decoding before capture.
-      await page.waitForTimeout(300);
       const card = resolve(root, `public/posters/success/${task}-intro.jpg`);
-      mkdirSync(resolve(root, "public/posters/success"), { recursive: true });
-      await page.screenshot({ path: card, type: "jpeg", quality: 97 });
-      console.log(`Rendered ${task} title card`);
-      if (process.argv.includes("--cards-only")) continue;
-      // Four seconds of introduction, then all of the original task footage.
-      // Original playback timing and reset intervals are unchanged. Audio starts
-      // with the original sequence, after the silent title card. A short final
-      // freeze holds the completed 3-success counter; it adds no extra trial.
-      const times = successTimes[task].map((time) => time + 4);
-      // The peg source ends with 0.1 s of black frames. Hold the last actual
-      // task frame instead; no manipulation or reset footage is removed.
-      const footageDuration = task === "peg-l" ? 23.0 : 23.1;
-      const holdDuration = endHold + (23.1 - footageDuration);
-      const overlays = times
-        .map((start, index) => {
-          const input = index === 0 ? "base" : `success${index}`;
-          const output = index === 2 ? "v" : `success${index + 1}`;
-          const enabled = `gte(t,${start})${index < 2 ? `*lt(t,${times[index + 1]})` : ""}`;
-          return `[${input}][${index + 2}:v]overlay=56:56:enable='${enabled}'[${output}]`;
-        })
-        .join(";");
-      const filters = `[0:v]format=yuv420p,setsar=1,fade=t=out:st=3.65:d=0.35[intro];[1:v]trim=duration=${footageDuration},setsar=1,fade=t=in:st=0:d=0.3[rollout];[intro][rollout]concat=n=2:v=1:a=0,tpad=stop_mode=clone:stop_duration=${holdDuration}[base];${overlays};[1:a]atrim=duration=${footageDuration},adelay=4000|4000,apad=pad_dur=${holdDuration}[a]`;
+      await page.screenshot({ path: card, type: "jpeg", quality: 95 });
+      const stages = [];
+      for (let i = 0; i < totalTrials; i++) {
+        stages.push({
+          state: "trial",
+          count: i + 1,
+          start: i ? config.resets[i - 1][1] : 0,
+          end: config.successes[i],
+        });
+        stages.push({
+          state: "success",
+          count: i + 1,
+          start: config.successes[i],
+          end: i < totalTrials - 1 ? config.resets[i][0] : footageEnd,
+        });
+        if (i < totalTrials - 1)
+          stages.push({
+            state: "reset",
+            count: i + 1,
+            start: config.resets[i][0],
+            end: config.resets[i][1],
+          });
+      }
+      for (const stage of stages) {
+        stage.path = resolve(
+          overlayDir,
+          `${task}-${stage.state}-${stage.count}.png`,
+        );
+        await page.goto(
+          pathToFileURL(resolve(__dirname, "rollout-overlay.html")).href +
+            `?task=${config.task}&state=${stage.state}&count=${stage.count}`,
+        );
+        await page.evaluate(() => document.fonts.ready);
+        await page.screenshot({ path: stage.path, omitBackground: true });
+      }
+      const hold = config.hold;
+      const filters = [
+        `[0:v]scale=1920:1080,format=yuv420p,setsar=1,fade=t=out:st=1:d=0.2[intro]`,
+        `[1:v]trim=duration=${config.duration},setpts=PTS-STARTPTS,setsar=1,fade=t=in:st=0:d=0.2[rollout]`,
+        `[intro][rollout]concat=n=2:v=1:a=0,tpad=stop_mode=clone:stop_duration=${hold}[base]`,
+        ...stages.map(
+          (stage, i) =>
+            `[${i ? `stage${i}` : "base"}][${i + 2}:v]overlay=0:0:enable='gte(t,${stage.start + introDuration})*lt(t,${stage.end + introDuration})'[${i === stages.length - 1 ? "v" : `stage${i + 1}`}]`,
+        ),
+        `[1:a]atrim=duration=${config.duration},asetpts=PTS-STARTPTS,adelay=1200|1200,apad=pad_dur=${hold}[a]`,
+      ].join(";");
+      const target = resolve(root, `public/videos/success/${task}-intro.mp4`);
+      const temporary = target.replace(".mp4", ".partial.mp4");
       const result = spawnSync(
         process.env.FFMPEG || "ffmpeg",
         [
@@ -94,12 +122,14 @@ const selectedTask = process.argv
           "-framerate",
           "30",
           "-t",
-          "4",
+          String(introDuration),
           "-i",
-          card,
+          resolve(root, `public/posters/success/${task}-intro.jpg`),
           "-i",
-          resolve(root, `public/videos/success/${task}.mp4`),
-          ...badges.flatMap((badge) => ["-i", badge]),
+          resolve(source, config.source),
+          ...stages.flatMap((stage) => ["-i", stage.path]),
+          "-filter_complex_threads",
+          "2",
           "-filter_complex",
           filters,
           "-map",
@@ -125,14 +155,15 @@ const selectedTask = process.argv
           "-threads",
           "4",
           "-t",
-          "28.6",
-          resolve(root, `public/videos/success/${task}-intro.mp4`),
+          String(totalDuration),
+          temporary,
         ],
         { stdio: "inherit" },
       );
       if (result.status !== 0) throw new Error(`ffmpeg failed for ${task}`);
+      renameSync(temporary, target);
       console.log(
-        `Encoded ${task}: 4 s intro + complete original sequence + ${endHold} s final hold; successes at ${times.join(", ")} s`,
+        `Updated ${task}: ${totalTrials} successful trials, ${config.resets.length} resets; ${totalDuration.toFixed(3)} s.`,
       );
     }
   } finally {

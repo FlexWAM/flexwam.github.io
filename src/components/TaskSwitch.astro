@@ -48,19 +48,6 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         ))
       }
     </div>
-    <button
-      type="button"
-      class="restart-videos"
-      aria-label={`Restart ${name.toLowerCase()} videos together`}
-    >
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"
-        ><path
-          d="M4 10a8 8 0 1 1 1 7M4 4v6h6"
-          stroke="currentColor"
-          stroke-width="1.6"></path></svg
-      >
-      Replay together
-    </button>
   </div>
   {
     panels.map((panel, index) => (
@@ -85,9 +72,6 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         ><path d="m14 6-6 6 6 6"></path></svg
       ></button
     >
-    <span class="carousel-position" aria-live="polite"
-      >1 / {panels[0].clips.length}</span
-    >
     <button type="button" class="carousel-next" aria-label="Next video"
       ><svg viewBox="0 0 24 24" aria-hidden="true"
         ><path d="m10 6 6 6-6 6"></path></svg
@@ -102,7 +86,6 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const previous =
       root.querySelector<HTMLButtonElement>(".carousel-previous")!;
     const next = root.querySelector<HTMLButtonElement>(".carousel-next")!;
-    const position = root.querySelector<HTMLElement>(".carousel-position")!;
     const navigation = root.querySelector<HTMLElement>(".carousel-navigation")!;
     const activePanel = () => panels.find((panel) => !panel.hidden)!;
     const updateCarousel = () => {
@@ -111,16 +94,6 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       navigation.hidden = overflow < 4;
       previous.disabled = panel.scrollLeft < 4;
       next.disabled = panel.scrollLeft >= overflow - 4;
-      const clips = [...panel.querySelectorAll<HTMLElement>(".clip")];
-      const step =
-        clips.length > 1
-          ? clips[1].offsetLeft - clips[0].offsetLeft
-          : panel.clientWidth;
-      const index = Math.min(
-        clips.length - 1,
-        Math.round(panel.scrollLeft / step),
-      );
-      position.textContent = `${index + 1} / ${clips.length}`;
     };
     const move = (direction: number) => {
       const panel = activePanel();
@@ -178,13 +151,6 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         tabs[next].focus();
         select(tabs[next]);
       });
-    });
-    root.querySelector(".restart-videos")?.addEventListener("click", () => {
-      root
-        .querySelectorAll<HTMLElement>(
-          '[role="tabpanel"]:not([hidden]) .video-player',
-        )
-        .forEach((player) => player.dispatchEvent(new Event("restart")));
     });
   });
 </script>

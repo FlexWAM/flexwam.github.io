@@ -140,16 +140,20 @@
   </div>
   <script>
     // Clip original PPT photos in SVG; preserve every component and hole exactly.
-    const cable = new URLSearchParams(location.search).get("task") === "cable";
+    const params = new URLSearchParams(location.search);
+    const cable = params.get("task") === "cable";
+    const round = params.get("task") === "peg-round";
     document.querySelector("#scene").src = cable
       ? "cable-scene.png"
       : "peg-scene.png";
     document.querySelector("#title").textContent = cable
       ? "Ethernet Cable Insertion"
-      : "L-Shaped Peg Insertion";
+      : round
+        ? "Round Peg-in-Hole"
+        : "L-shaped Peg-in-Hole";
     document.querySelector("#label").textContent = cable
       ? "Approximate alignment tolerance"
-      : "Peg–hole clearance · 20 μm";
+      : `${round ? "Round" : "L-shaped"} peg · 20 μm clearance`;
     document.querySelector("#metrics").innerHTML = cable
       ? '<span class="value">±0.1<small> mm</small></span><span class="divider">/</span><span class="value">≤1<small>°</small></span>'
       : '<span class="value">0.02<small> mm</small></span>';
@@ -161,7 +165,7 @@
       `<svg class="object ${cable ? "cable" : "peg"}" viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg">
     <defs><clipPath id="board"><polygon points="${polygon}"/></clipPath></defs>
     <image href="../../public/images/precision/${cable ? "cable" : "peg"}-board.jpg" width="${cable ? 2048 : 1706}" height="${cable ? 1153 : 1279}" clip-path="url(#board)"/>
-    ${cable ? '<rect class="target" x="591" y="871" width="216" height="99" rx="8"/>' : '<rect class="target" x="193" y="390" width="137" height="106" rx="13"/>'}
+    ${cable ? '<rect class="target" x="591" y="871" width="216" height="99" rx="8"/>' : round ? '<circle class="target" cx="1070" cy="442" r="64"/>' : '<rect class="target" x="193" y="390" width="137" height="106" rx="13"/>'}
   </svg>`;
   </script>
 </html>

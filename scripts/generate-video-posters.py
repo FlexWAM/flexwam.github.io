@@ -12,7 +12,9 @@ public = Path(__file__).resolve().parents[1] / 'public'
 for video in sorted((public / 'videos').rglob('*.mp4')):
     poster = (public / 'posters' / video.relative_to(public / 'videos')).with_suffix('.jpg')
     poster.parent.mkdir(parents=True, exist_ok=True)
+    # Precision intros keep a 1.5s title card, then cut to the rollout.
+    seek = '0.7' if video.parent.name == 'success' and video.name.endswith('-intro.mp4') else '0.2'
     subprocess.run([args.ffmpeg, '-hide_banner', '-loglevel', 'error', '-y',
-                    '-ss', '0.2', '-i', str(video), '-frames:v', '1',
+                    '-ss', seek, '-i', str(video), '-frames:v', '1',
                     '-vf', 'scale=960:-2', '-q:v', '4', str(poster)], check=True)
 print('Generated posters for all videos.')

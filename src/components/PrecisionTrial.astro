@@ -6,22 +6,64 @@ interface Props {
 }
 const { task } = Astro.props;
 const cable = task === "cable";
-const title = cable ? "Ethernet cable insertion" : "L-shaped peg insertion";
-// Main-paper Table 1, FlexWAM (LingBot) and pi_0.5; 20 trials per task.
-const ours = cable ? 75 : 95;
-const baseline = cable ? 35 : 50;
+const title = cable
+  ? "Ethernet cable insertion"
+  : "ManipulationNet Peg-in-Hole";
+// Success rates are from the full 20-trial evaluation, not these selected clips.
+const clips = cable
+  ? [
+      {
+        id: "cable-more",
+        label: "4 consecutive successes",
+        ours: 75,
+        baseline: 35,
+      },
+      { id: "cable", label: "3 consecutive successes", ours: 75, baseline: 35 },
+    ]
+  : [
+      {
+        id: "peg-l-more",
+        label: "L-shaped · 6 successes",
+        ours: 95,
+        baseline: 50,
+      },
+      {
+        id: "peg-round-more",
+        label: "Round · 5 successes",
+        ours: 100,
+        baseline: 50,
+      },
+    ];
+const clipTitle = (id: string) =>
+  cable
+    ? "Ethernet cable insertion"
+    : id.includes("round")
+      ? "Round Peg-in-Hole"
+      : "L-shaped Peg-in-Hole";
 ---
 
-<figure class="precision-trial">
+<figure class="precision-trial" data-precision-gallery={task}>
   <figcaption class="precision-heading">
     <div class="precision-task">
       <p class="precision-kicker">Flexiv · Consecutive successes</p>
-      <h3>{title}</h3>
+      <h3 data-precision-title>{clipTitle(clips[0].id)}</h3>
+      {
+        !cable && (
+          <a
+            class="precision-source"
+            href="https://manipulation-net.org/tasks/peg_in_hole.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ManipulationNet ↗
+          </a>
+        )
+      }
       <p class="precision-description">
         {
           cable
             ? "Connector–port alignment and insertion under tight positional and angular tolerances."
-            : "L-shaped peg insertion at 20 μm clearance, requiring precise position and orientation alignment."
+            : "L-shaped and round peg insertion at 20 μm clearance, requiring precise alignment."
         }
       </p>
     </div>
@@ -67,28 +109,139 @@ const baseline = cable ? 35 : 50;
       }
     </div>
   </figcaption>
-  <VideoPlayer src={media(`videos/success/${task}-intro.mp4`)} title={title} />
-  <div class="trial-results" aria-label={`${title} success rate comparison`}>
-    <div class="result-label">
-      <span>Task success rate</span>
-      <p>20 randomized trials per method</p>
-    </div>
-    <div class="result-method result-ours">
-      <span>FlexWAM <small>(LingBot)</small></span>
-      <strong>{ours}<small>%</small></strong>
-    </div>
-    <div class="result-method result-baseline">
-      <span>π<sub>0.5</sub></span>
-      <strong>{baseline}<small>%</small></strong>
-    </div>
-    <div class="result-gain">
-      <span>+{ours - baseline} pp</span>
-      <small>over π<sub>0.5</sub></small>
+  <div class="precision-selector">
+    <div class="task-tabs" role="tablist" aria-label={`${title} sequences`}>
+      {
+        clips.map((clip, index) => (
+          <button
+            class="task-chip"
+            type="button"
+            role="tab"
+            id={`precision-tab-${clip.id}`}
+            aria-controls={`precision-panel-${clip.id}`}
+            aria-selected={index === 0}
+            tabindex={index === 0 ? 0 : -1}
+          >
+            {clip.label}
+          </button>
+        ))
+      }
     </div>
   </div>
+  {
+    clips.map((clip, index) => (
+      <div
+        class="precision-panel"
+        data-task-title={clipTitle(clip.id)}
+        role="tabpanel"
+        id={`precision-panel-${clip.id}`}
+        aria-labelledby={`precision-tab-${clip.id}`}
+        hidden={index !== 0}
+        tabindex="0"
+      >
+        <VideoPlayer
+          src={media(`videos/success/${clip.id}-intro.mp4`)}
+          title={`${clipTitle(clip.id)} — ${clip.label}`}
+        />
+        <div
+          class="trial-results"
+          aria-label={`${title} ${clip.id.includes("round") ? "(round)" : cable ? "" : "(L-shaped)"} success rate comparison`}
+        >
+          <div class="result-label">
+            <span>Task success rate</span>
+            <p>
+              {cable
+                ? "Cable insertion"
+                : clip.id.includes("round")
+                  ? "Round peg"
+                  : "L-shaped peg"}{" "}
+              · 20 randomized trials per method
+            </p>
+          </div>
+          <div class="result-method result-ours">
+            <span>
+              FlexWAM <small>(LingBot)</small>
+            </span>
+            <strong>
+              {clip.ours}
+              <small>%</small>
+            </strong>
+          </div>
+          <div class="result-method result-baseline">
+            <span>
+              π<sub>0.5</sub>
+            </span>
+            <strong>
+              {clip.baseline}
+              <small>%</small>
+            </strong>
+          </div>
+          <div class="result-gain">
+            <span>+{clip.ours - clip.baseline} pp</span>
+            <small>
+              over π<sub>0.5</sub>
+            </small>
+          </div>
+        </div>
+      </div>
+    ))
+  }
 </figure>
 
+<script>
+  document
+    .querySelectorAll<HTMLElement>("[data-precision-gallery]")
+    .forEach((root) => {
+      const tabs = [
+        ...root.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+      ];
+      const panels = [
+        ...root.querySelectorAll<HTMLElement>('[role="tabpanel"]'),
+      ];
+      const heading = root.querySelector<HTMLElement>("[data-precision-title]");
+      const select = (index: number) => {
+        if (heading)
+          heading.textContent = panels[index].dataset.taskTitle || "";
+        tabs.forEach((tab, i) => {
+          tab.setAttribute("aria-selected", String(i === index));
+          tab.tabIndex = i === index ? 0 : -1;
+        });
+        panels.forEach((panel, i) => {
+          panel.hidden = i !== index;
+          panel
+            .querySelectorAll<HTMLElement>(".video-player")
+            .forEach((player) => {
+              player.dispatchEvent(new Event("panelchange"));
+            });
+        });
+      };
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => select(index));
+        tab.addEventListener("keydown", (event) => {
+          let next = index;
+          if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+          else if (event.key === "ArrowLeft")
+            next = (index + tabs.length - 1) % tabs.length;
+          else if (event.key === "Home") next = 0;
+          else if (event.key === "End") next = tabs.length - 1;
+          else return;
+          event.preventDefault();
+          select(next);
+          tabs[next].focus();
+        });
+      });
+    });
+</script>
+
 <style>
+  .precision-selector {
+    display: flex;
+    justify-content: center;
+    margin: 1.5rem 0;
+  }
+  .precision-panel[hidden] {
+    display: none;
+  }
   .precision-trial {
     margin: 0;
     min-width: 0;
@@ -106,7 +259,7 @@ const baseline = cable ? 35 : 50;
   }
   .precision-kicker {
     margin: 0 0 0.45rem;
-    font-size: 0.7rem;
+    font-size: 0.825rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     font-weight: 650;
@@ -120,11 +273,22 @@ const baseline = cable ? 35 : 50;
     font-weight: 700;
     letter-spacing: -0.035em;
   }
+  .precision-source {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: #2362ca;
+    font-size: 1rem;
+    font-weight: 600;
+    text-underline-offset: 0.2em;
+  }
+  .precision-source:hover {
+    text-decoration: underline;
+  }
   .precision-description {
     max-width: 29rem;
     margin: 0.65rem 0 0;
     color: #657488;
-    font-size: 0.9rem;
+    font-size: 1.025rem;
     line-height: 1.6;
   }
   .precision-metrics {
@@ -157,12 +321,12 @@ const baseline = cable ? 35 : 50;
   }
   .precision-metrics > div > span {
     color: #63738b;
-    font-size: 0.73rem;
+    font-size: 0.855rem;
     margin-top: 0.3rem;
   }
   .precision-metrics p {
     flex: 0 0 100%;
-    font-size: 0.66rem;
+    font-size: 0.785rem;
     color: #718097;
     margin: 0.3rem 0 0;
   }
@@ -180,11 +344,11 @@ const baseline = cable ? 35 : 50;
   .result-label > span {
     font-weight: 650;
     color: #243c60;
-    font-size: 0.85rem;
+    font-size: 0.975rem;
   }
   .result-label p {
     margin: 0.3rem 0 0;
-    font-size: 0.7rem;
+    font-size: 0.825rem;
     color: #708097;
   }
   .result-method {
@@ -193,13 +357,13 @@ const baseline = cable ? 35 : 50;
     gap: 0.3rem;
   }
   .result-method > span {
-    font-size: 0.8rem;
+    font-size: 0.925rem;
     font-weight: 650;
     color: #2362ca;
     white-space: nowrap;
   }
   .result-method > span small {
-    font-size: 0.65rem;
+    font-size: 0.775rem;
     font-weight: 450;
   }
   .result-method strong {
@@ -222,7 +386,7 @@ const baseline = cable ? 35 : 50;
   }
   .result-gain > span {
     color: #2362ca;
-    font-size: 1rem;
+    font-size: 1.125rem;
     font-weight: 700;
     border-radius: 2rem;
     padding: 0.3rem 0.75rem;
@@ -230,7 +394,7 @@ const baseline = cable ? 35 : 50;
     white-space: nowrap;
   }
   .result-gain > small {
-    font-size: 0.65rem;
+    font-size: 0.775rem;
     color: #708097;
   }
   @media (max-width: 800px) {
@@ -256,8 +420,19 @@ const baseline = cable ? 35 : 50;
     strong {
       font-size: 2.6rem;
     }
+    .precision-source {
+      display: inline-block;
+      margin-top: 0.5rem;
+      color: #2362ca;
+      font-size: 1rem;
+      font-weight: 600;
+      text-underline-offset: 0.2em;
+    }
+    .precision-source:hover {
+      text-decoration: underline;
+    }
     .precision-description {
-      font-size: 0.85rem;
+      font-size: 0.975rem;
     }
   }
 </style>

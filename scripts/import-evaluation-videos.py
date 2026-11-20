@@ -30,7 +30,12 @@ methods = [
     ('pi', 'pi05'), ('fastwam', 'FastWAM'),
     ('openwam', 'OpenWAM'), ('lawam', 'LaWAM'),
 ]
-jobs = [(source_root / folder / f'{prefix}_{suffix}.mp4', f'{task}-{method}')
+# Explicit replacement supplied for the LingBot L-shaped peg evaluation.
+source_overrides = {
+    ('peg-l', 'lingbot'): 'flexiv/L/FlexWAM_lingbot.mp4',
+}
+jobs = [(source_root / source_overrides.get(
+            (task, method), f'{folder}/{prefix}_{suffix}.mp4'), f'{task}-{method}')
         for task, folder, suffix in tasks for method, prefix in methods]
 for source, _ in jobs:
     if not source.is_file():

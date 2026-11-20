@@ -18,6 +18,8 @@ interface Frontmatter {
   conference?: string;
   notes?: Note[];
   links?: Link[];
+  paperUrl?: string;
+  codeUrl?: string;
   description?: string;
   favicon: string;
   thumbnail?: string;
@@ -30,6 +32,8 @@ const {
   conference,
   notes,
   links,
+  paperUrl,
+  codeUrl,
   description,
   favicon,
   thumbnail,
@@ -38,6 +42,20 @@ const {
 
 const baseUrl = import.meta.env.BASE_URL;
 const prefix = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+const resources = [
+  {
+    label: "Paper",
+    href: paperUrl,
+    style: "primary-action",
+    icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h6",
+  },
+  {
+    label: "Code",
+    href: codeUrl,
+    style: "secondary-action",
+    icon: "m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18",
+  },
+];
 ---
 
 <!doctype html>
@@ -85,8 +103,42 @@ const prefix = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         {notes && <Notes notes={notes} />}
         {links && <Links links={links} />}
         <div class="hero-actions not-prose">
-          <a class="primary-action" href="#overview">Watch the overview</a>
-          <a class="secondary-action" href="#routing">Explore visual routing</a>
+          {
+            resources.map((resource) => {
+              const Tag = resource.href ? "a" : "button";
+              return (
+                <Tag
+                  class={resource.style}
+                  href={resource.href}
+                  type={resource.href ? undefined : "button"}
+                  disabled={!resource.href}
+                  title={
+                    resource.href
+                      ? resource.label
+                      : `${resource.label} link coming soon`
+                  }
+                  aria-label={
+                    resource.href
+                      ? resource.label
+                      : `${resource.label} — link coming soon`
+                  }
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d={resource.icon} />
+                  </svg>
+                  {resource.label}
+                </Tag>
+              );
+            })
+          }
         </div>
       </div>
     </header>
