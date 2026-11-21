@@ -1,0 +1,16 @@
+---
+import TaskSwitch from "./TaskSwitch.astro";
+import { media } from "../lib/media";
+import { researchTasks } from "../lib/researchTasks";
+const panels = researchTasks.map((task) => ({
+  ...task,
+  clips: ["wan", "lingbot"].map((backbone) => ({
+    src: media(`videos/router/compact/${task.id}-${backbone}.mp4`),
+    title: `FlexWAM (${backbone === "wan" ? "Wan" : "LingBot"})`,
+    detail: `${task.platform} · scene ${task.scene}`,
+    tone: "ours" as const,
+  })),
+}));
+---
+
+<TaskSwitch name="Routing backbones" columns={2} panels={panels} />

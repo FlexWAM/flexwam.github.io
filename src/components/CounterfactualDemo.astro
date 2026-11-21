@@ -1,0 +1,406 @@
+---
+import { media } from "../lib/media";
+import { methodViews } from "../lib/methodViews";
+---
+
+<div class="cf-demo" data-cf-demo>
+  <div class="cf-demo-heading">
+    <div>
+      <span class="method-eyebrow">The learning signal</span><h3>
+        Mask a view. Measure what changes.
+      </h3>
+    </div>
+    <p>
+      Compare the same observation with and without one visual branch. Select a
+      camera to see the intervention.
+    </p>
+  </div>
+  <div class="cf-passes">
+    <div class="cf-pass">
+      <div class="pass-heading">
+        <span>01 / Reference</span><strong>All views available</strong>
+      </div>
+      <div class="camera-triplet">
+        {
+          methodViews.map((view) => (
+            <div class="camera-card" style={`--view-color: ${view.color}`}>
+              <div class="camera-photo">
+                <img
+                  src={media(`images/method/${view.id}.jpg`)}
+                  alt={`${view.label} camera at the same instant during pencil case packing`}
+                  width="660"
+                  height="420"
+                  loading="lazy"
+                />
+              </div>
+              <>
+                <span class="camera-label">
+                  <i aria-hidden="true" />
+                  {view.label}
+                </span>
+                <small>Gate = 1</small>
+              </>
+            </div>
+          ))
+        }
+      </div>
+      <div class="loss-output">
+        <span>Action expert</span><span aria-hidden="true">→</span><strong
+          >L<sub>all</sub></strong>
+      </div>
+    </div>
+    <div class="cf-pass intervened-pass">
+      <div class="pass-heading">
+        <span>02 / Intervention</span><strong data-masked-heading
+          >Left wrist branch masked</strong>
+      </div>
+      <div
+        class="camera-triplet"
+        role="group"
+        aria-label="Choose the camera branch to mask"
+      >
+        {
+          methodViews.map((view, index) => (
+            <button
+              type="button"
+              class="camera-card mask-choice"
+              style={`--view-color: ${view.color}`}
+              data-view={view.label}
+              aria-pressed={index === 1}
+              aria-label={`Mask ${view.label.toLowerCase()} view`}
+            >
+              <span class="camera-photo">
+                <>
+                  <img
+                    src={media(`images/method/${view.id}.jpg`)}
+                    alt=""
+                    width="660"
+                    height="420"
+                    loading="lazy"
+                  />
+                  <span class="mask-veil">
+                    <>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.8 5.3A10 10 0 0112 5c5 0 9 7 9 7a18 18 0 01-3.4 3.9M6.4 6.4C3.2 8.6 3 12 3 12s4 7 9 7a10 10 0 005.6-1.6" />
+                      </svg>
+                      <span>Masked</span>
+                    </>
+                  </span>
+                </>
+              </span>
+              <>
+                <span class="camera-label">
+                  <i aria-hidden="true" />
+                  {view.label}
+                </span>
+                <small data-gate>Gate = {index === 1 ? "0" : "1"}</small>
+              </>
+            </button>
+          ))
+        }
+      </div>
+      <div class="loss-output">
+        <span>Same action expert</span><span aria-hidden="true">→</span><strong
+          >L<sub>−view</sub></strong>
+      </div>
+    </div>
+  </div>
+  <div class="cf-credit-readout">
+    <div>
+      <span class="method-eyebrow">Counterfactual view credit</span><span
+        class="credit-equation">ΔL = L<sub>−view</sub> − L<sub>all</sub></span>
+    </div>
+    <p>
+      A larger loss increase means greater reliance on the masked view, given
+      the remaining inputs. A critic learns normalized credit to supervise the
+      router.
+    </p>
+  </div>
+  <p class="cf-footnote">
+    Same model parameters and action noise in both passes. Masking removes a
+    visual branch from action attention; the image overlay illustrates this
+    intervention.
+  </p>
+  <span class="sr-only" aria-live="polite" data-mask-status
+    >Left wrist branch masked. The other two gates remain one.</span
+  >
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>("[data-cf-demo]").forEach((root) => {
+    const choices = [
+      ...root.querySelectorAll<HTMLButtonElement>(".mask-choice"),
+    ];
+    choices.forEach((choice) =>
+      choice.addEventListener("click", () => {
+        choices.forEach((button) => {
+          const active = button === choice;
+          button.setAttribute("aria-pressed", String(active));
+          button.querySelector<HTMLElement>("[data-gate]")!.textContent =
+            `Gate = ${active ? 0 : 1}`;
+        });
+        const label = choice.dataset.view;
+        root.querySelector<HTMLElement>("[data-masked-heading]")!.textContent =
+          `${label} branch masked`;
+        root.querySelector<HTMLElement>("[data-mask-status]")!.textContent =
+          `${label} branch masked. The other two gates remain one.`;
+      }),
+    );
+  });
+</script>
+<style>
+  .cf-demo {
+    border: 1px solid #d8e5f5;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f5f9ff, #fff 65%);
+  }
+  .cf-demo-heading {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+    padding: 1.8rem 2rem;
+  }
+  .method-eyebrow {
+    display: block;
+    color: #4675ad;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 650;
+  }
+  .cf-demo h3 {
+    margin: 0.65rem 0 0;
+    font-size: 1.55rem;
+    line-height: 1.35;
+    font-weight: 600;
+    color: #1d416c;
+  }
+  .cf-demo .cf-demo-heading p {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+  .cf-passes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.4rem;
+    padding: 0 2rem;
+  }
+  .cf-pass {
+    padding: 1.1rem;
+    border: 1px solid #dce6f1;
+    border-radius: 10px;
+    background: #fff;
+    min-width: 0;
+  }
+  .intervened-pass {
+    border-color: #b5ceee;
+  }
+  .pass-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 1rem;
+  }
+  .pass-heading > span {
+    font-size: 0.75rem;
+    color: #788aa0;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .pass-heading strong {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #284f7c;
+  }
+  .camera-triplet {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+  .camera-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+    background: none;
+    border: 0;
+  }
+  .camera-photo {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: 6px;
+    width: 100%;
+    aspect-ratio: 11 / 7;
+    background: #e6edf6;
+  }
+  .camera-photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    margin: 0;
+  }
+  .camera-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.6rem;
+    color: #314e70;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .camera-label i {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--view-color);
+  }
+  .camera-card small {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #7c8a9b;
+  }
+  .mask-choice:hover .camera-photo {
+    outline: 2px solid #9dbbe7;
+    outline-offset: 2px;
+  }
+  .mask-choice[aria-pressed="true"] .camera-photo {
+    outline: 2px solid #6290cd;
+    outline-offset: 2px;
+  }
+  .mask-choice[aria-pressed="true"] small {
+    color: #2862b5;
+  }
+  .mask-veil {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    color: #3165a3;
+    background: repeating-linear-gradient(
+      135deg,
+      #eaf1fbf5 0px,
+      #eaf1fbf5 6px,
+      #dfe9f8f5 6px,
+      #dfe9f8f5 7px
+    );
+    opacity: 0;
+    transition: opacity 0.25s;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .mask-veil svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+  .mask-choice[aria-pressed="true"] .mask-veil {
+    opacity: 1;
+  }
+  .loss-output {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid #e7edf5;
+    color: #637d9c;
+    font-size: 0.8rem;
+  }
+  .loss-output strong {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 1.3rem;
+    color: #305b92;
+  }
+  .cf-credit-readout {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    align-items: center;
+    gap: 2rem;
+    margin: 1.5rem 2rem 0;
+    padding: 1.3rem 0;
+    border-top: 1px solid #dce6f3;
+  }
+  .credit-equation {
+    display: block;
+    margin-top: 0.5rem;
+    color: #2964b5;
+    font:
+      italic 1.8rem Georgia,
+      serif;
+  }
+  .credit-equation sub {
+    font-size: 0.55em;
+  }
+  .cf-demo .cf-credit-readout p {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+  .cf-demo .cf-footnote {
+    margin: 0;
+    padding: 0 2rem 1.4rem;
+    color: #788aa0;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+  }
+  @media (max-width: 750px) {
+    .cf-demo-heading,
+    .cf-credit-readout {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .cf-passes {
+      grid-template-columns: 1fr;
+    }
+    .camera-photo {
+      max-height: 130px;
+    }
+  }
+  @media (max-width: 450px) {
+    .cf-demo-heading {
+      padding: 1.3rem 1rem;
+    }
+    .cf-demo h3 {
+      font-size: 1.35rem;
+    }
+    .cf-passes {
+      padding: 0 1rem;
+      gap: 1rem;
+    }
+    .cf-pass {
+      padding: 0.8rem;
+    }
+    .camera-triplet {
+      gap: 0.45rem;
+    }
+    .camera-label {
+      font-size: 0.7rem;
+    }
+    .cf-credit-readout {
+      margin-inline: 1rem;
+    }
+    .cf-demo .cf-footnote {
+      padding-inline: 1rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mask-veil {
+      transition: none;
+    }
+  }
+</style>

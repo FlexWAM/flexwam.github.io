@@ -1,6 +1,7 @@
 ---
 import TaskSwitch from "./TaskSwitch.astro";
 import { media } from "../lib/media";
+import { researchTasks } from "../lib/researchTasks";
 
 const methods = [
   { id: "wan", title: "FlexWAM (Wan)", ours: true },
@@ -10,24 +11,12 @@ const methods = [
   { id: "openwam", title: "OpenWAM", ours: false },
   { id: "lawam", title: "LaWAM", ours: false },
 ];
-const tasks = [
-  { id: "cable", label: "Cable insertion", detail: "Flexiv · 20 trials" },
-  { id: "peg-l", label: "Peg-in-hole (L)", detail: "Flexiv · 20 trials" },
-  {
-    id: "peg-round",
-    label: "Peg-in-hole (round)",
-    detail: "Flexiv · 20 trials",
-  },
-  { id: "pencil", label: "Pencil case", detail: "PiPER · 20 trials" },
-  { id: "conveyor", label: "Conveyor sorting", detail: "PiPER · 100 blocks" },
-];
-const panels = tasks.map((task) => ({
-  id: task.id,
-  label: task.label,
+const panels = researchTasks.map((task) => ({
+  ...task,
   clips: methods.map((method) => ({
     src: media(`videos/evaluation/${task.id}-${method.id}.mp4`),
     title: method.title,
-    detail: task.detail,
+    detail: `${task.platform} · ${task.trials}`,
     badge: method.ours ? "Ours" : undefined,
     tone: method.ours ? ("ours" as const) : ("neutral" as const),
   })),

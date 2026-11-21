@@ -57,11 +57,10 @@ import Figure from "./components/Figure.astro";
 import Picture from "./components/Picture.astro";
 import OverviewVideo from "./components/OverviewVideo.astro";
 import PrecisionTrial from "./components/PrecisionTrial.astro";
-import TaskSwitch from "./components/TaskSwitch.astro";
+import RoutingGallery from "./components/RoutingGallery.astro";
 import EvaluationGallery from "./components/EvaluationGallery.astro";
 
 import SuccessChart from "./components/SuccessChart.astro";
-import { media } from "./lib/media";
 
 import teaser from "./assets/teaser.png";
 import framework from "./assets/framework.png";
@@ -70,12 +69,6 @@ import tasks from "./assets/tasks.png";
 <h2 className="sr-only">Overview</h2>
 
 <OverviewVideo />
-
-<div className="result-strip not-prose">
-  <div><strong>83.8<span>%</span></strong><p>Mean task success rate</p><span>FlexWAM (LingBot) · five-task mean</span></div>
-  <div><strong>+23.0<span> pp</span></strong><p>Mean gain over OpenWAM</p><span>Strongest baseline · 60.8% mean success</span></div>
-  <div><strong>5 <span>tasks ·</span> 2 <span>robots</span></strong><p>Real-world evaluation</p><span>Single-arm Flexiv · dual-arm PiPER</span></div>
-</div>
 
 <div className="section-heading"><h2 id="consecutive-successes">Randomized precision tests</h2><p className="section-subtitle">Consecutive successes</p></div>
 
@@ -87,105 +80,87 @@ Consecutive successful rollouts of Ethernet cable insertion and [ManipulationNet
 </div>
 
 
-<div className="section-heading"><p className="eyebrow">Motivation</p><h2 id="perspective">Flexible visual routing</h2></div>
+<section className="research-section demo-section not-prose" aria-labelledby="routing">
+  <header className="chapter-heading">
+    <div><p className="chapter-kicker">01 / Visual routing</p><h2 id="routing">Dynamic view weights</h2></div>
+    <p className="chapter-intro">Watch how the camera weights evolve during manipulation. Wan and LingBot rollouts show the three camera streams alongside their normalized routing weights.</p>
+  </header>
+  <RoutingGallery />
+  <p className="evidence-note">Camera labels report the current weights; the curves trace them over time. These weights act as observation-dependent priors for action-to-view attention.</p>
+</section>
 
-Multi-camera observations provide complementary information for manipulation. Global and side views provide workspace context, while wrist views reveal local object–target geometry. Their relevance to action prediction varies with the manipulation stage and the current pattern of occlusion.
+<section className="research-section not-prose" aria-labelledby="perspective">
+  <header className="chapter-heading">
+    <div><p className="chapter-kicker">02 / Motivation</p><h2 id="perspective">Different views.<br />{" "}Different roles.</h2></div>
+    <p className="chapter-intro">A wrist camera can reveal an insertion point that the global view cannot see. As the robot moves, the most useful view changes with it.</p>
+  </header>
 
-**FlexWAM learns observation-dependent visual routing for World Action Models (WAMs).** It combines view-specific dynamics modeling with cross-view information exchange and calibrates camera contributions to action prediction using counterfactual view credit.
+  <Figure fullWidth>
+    <Picture slot="figure" src={teaser} alt="An occluded placement scene motivates preserving local camera detail and learning each view’s contribution to action prediction." />
+    <Fragment slot="caption">Complementary views, unequal relevance. FlexWAM preserves local visual detail, exchanges context across cameras, and learns how much each view contributes to the current action.</Fragment>
+  </Figure>
 
-<Figure fullWidth>
-  <Picture slot="figure" src={teaser} alt="Overview of FlexWAM: view-aware world modeling, counterfactual view evaluation, and observation-dependent routing for action prediction." />
-  <Fragment slot="caption">FlexWAM preserves each camera stream’s spatial token grid, alternates within-view and cross-view attention, and uses counterfactual view credit to calibrate routing for action prediction.</Fragment>
-</Figure>
+  <div className="research-takeaway">
+    <h3>Preserve detail.<br />{" "}Learn where to look.</h3>
+    <p>Tiling camera images into a fixed canvas can sacrifice the detail needed for precise manipulation. FlexWAM encodes each view separately, alternates within-view and cross-view attention, and makes camera contributions explicit through observation-dependent routing.</p>
+  </div>
+</section>
 
-<div className="section-heading"><p className="eyebrow">Method</p><h2 id="method">Counterfactual-guided visual routing</h2></div>
+<section className="research-section not-prose" aria-labelledby="method">
+  <header className="chapter-heading">
+    <div><p className="chapter-kicker">03 / Method</p><h2 id="method">Learning to route<br />{" "}with counterfactual credit.</h2></div>
+    <p className="chapter-intro">Action loss alone can leave camera weights nearly uniform. <strong>Counterfactual (CF) view credit</strong> gives the router a direct learning signal: how much does action prediction depend on each view?</p>
+  </header>
 
-**Counterfactual (CF) view credit provides an action-grounded signal for learning camera contributions.** Training with the action loss alone can leave routing weights nearly uniform across observations. FlexWAM measures how the action loss changes when each view’s contribution is suppressed, then uses a critic to turn these evaluations into supervision for the router.
+  <figure className="method-framework">
+    <header>
+      <h3>Mask a view. Measure what changes.</h3>
+      <p>Counterfactual view credit measures the change in action loss when one visual branch is masked. A critic learns normalized credit and calibrates the router.</p>
+    </header>
+    <Picture src={framework} alt="FlexWAM framework: view-aware world modeling, counterfactual view credit, and the view-routed action expert." />
+    <figcaption>The critic supervises routing during training; observation-dependent view weights guide action generation through View-Routed Action Attention.</figcaption>
+  </figure>
 
-<Figure fullWidth>
-  <Picture slot="figure" src={framework} alt="FlexWAM architecture: alternating within-view and cross-view attention, critic-guided router calibration, and view-routed action attention." />
-  <Fragment slot="caption">FlexWAM framework. Counterfactual view evaluation measures action-loss sensitivity to masking each visual branch. A critic learns normalized view credit and provides soft targets for router calibration. View-Routed Action Attention uses the resulting observation-dependent weights to modulate visual attention in the action expert.</Fragment>
-</Figure>
+  <div className="research-takeaway">
+    <h3>Learn view credit.<br />{" "}Route from the observation.</h3>
+    <p>The critic and counterfactual evaluations are used only during training. At deployment, the router predicts camera weights once per observation and reuses them across action-denoising steps.</p>
+  </div>
 
-**View-aware representations support flexible routing.** Each camera stream is encoded independently by a frozen video VAE. Shared video DiT layers alternate within-view and cross-view attention to model local dynamics and integrate complementary context. The router’s log-scaled view gates enter action attention as additive visual-logit biases, preserving relative spatial token preferences within each view.
+</section>
 
+<section className="research-section not-prose" aria-labelledby="experiments">
+  <header className="chapter-heading">
+    <div><p className="chapter-kicker">04 / Experiments</p><h2 id="experiments">Precision insertion.<br />{" "}Bimanual coordination.</h2></div>
+    <p className="chapter-intro">Five real-world tasks test fine alignment, deformable-object manipulation, and moving-object handling on the single-arm Flexiv and dual-arm PiPER.</p>
+  </header>
 
-<div className="section-heading"><p className="eyebrow">Real-world evaluation</p><h2 id="experiments">Five tasks across two robot platforms</h2></div>
-
-We evaluate **five manipulation tasks on two robot platforms**, using 100 teleoperated demonstrations per task collected at 30 Hz. The single-arm Flexiv Rizon 4s performs Ethernet cable insertion, L-shaped peg insertion, and round peg insertion. Both peg-in-hole tasks use **0.02 mm clearance**, the most challenging setting in ManipulationNet. The dual-arm AgileX PiPER performs pencil case packing and conveyor sorting.
-
-<Figure fullWidth>
-  <Picture slot="figure" src={tasks} alt="Five real-world tasks and camera configurations on the single-arm Flexiv and dual-arm PiPER robots." />
-  <Fragment slot="caption">Flexiv uses two fixed cameras and one wrist camera; PiPER uses one global camera and two wrist cameras. Each static task is evaluated in 20 trials at the same randomized initial positions across methods. Conveyor sorting is evaluated on 100 blocks under an identical placement protocol.</Fragment>
-</Figure>
-
-### Real-world task success rates
-
-We compare against three WAM baselines—Fast-WAM, OpenWAM, and LaWAM—and the VLA model $\pi_{0.5}$. FlexWAM achieves **77.2%** mean task success with Wan2.2-TI2V-5B and **83.8%** with LingBot-Video-Dense (1.3B). These correspond to gains of **16.4 and 23.0 percentage points** over OpenWAM, the strongest baseline by five-task mean success. The clearest gains occur in precision insertion tasks; on conveyor sorting, FlexWAM (LingBot) matches OpenWAM at 89%.
-
-<SuccessChart />
+  <div className="results-intro">
+    <h3>Stronger performance across two backbones</h3>
+    <p>FlexWAM reaches <strong>77.2%</strong> mean task success with Wan and <strong>83.8%</strong> with LingBot—gains of <strong>16.4</strong> and <strong>23.0 percentage points</strong> over OpenWAM, the strongest baseline by five-task mean success.</p>
+  </div>
+  <SuccessChart />
 
 
-<div className="section-heading"><p className="eyebrow">Visual routing analysis</p><h2 id="routing">Dynamic view weights</h2></div>
+  <div className="evaluation-evidence">
+    <header>
+      <h3 id="same-scene-baselines">All evaluation cases</h3>
+      <p>Inspect both FlexWAM backbones and four baselines on the same five tasks. Each compilation includes a representative rollout, evaluation scenes, and per-scene outcomes.</p>
+    </header>
+  <EvaluationGallery />
+  <p className="evidence-note">Choose a task below the videos; scroll or use the arrows to compare all six methods. Open fullscreen to inspect individual trials. Playback speeds are marked in each video.</p>
+  </div>
 
-The following rollouts compare FlexWAM (Wan) and FlexWAM (LingBot) on corresponding evaluation scenes. Each video displays the three camera streams and their normalized routing weights over time. These weights provide observation-dependent priors for action-to-view attention. The examples illustrate how the policy adjusts its reliance on local wrist views and broader workspace views across manipulation stages.
+  <details className="research-details setup-details">
+    <summary>Robot setups and evaluation protocol</summary>
+    <p>Demonstrations are collected at 30 Hz. Flexiv uses two fixed cameras and one wrist camera; PiPER uses one global camera and two wrist cameras. Static tasks use the same 20 randomized initial positions across methods. Conveyor sorting uses 100 blocks across 10 scenes under an identical placement protocol.</p>
+    <Figure fullWidth>
+      <Picture slot="figure" src={tasks} alt="Five real-world tasks and camera configurations on Flexiv and PiPER." />
+      <Fragment slot="caption">Both <a href="https://manipulation-net.org/tasks/peg_in_hole.html" target="_blank" rel="noopener noreferrer">ManipulationNet</a> peg-in-hole tasks use 0.02 mm clearance. Pencil-case success requires both pen placement and zipper closure.</Fragment>
+    </Figure>
+  </details>
+</section>
 
-<p className="routing-guide not-prose"><span>Select a task.</span> Camera labels show the current routing weights; the curves show their evolution over the rollout.</p>
 
-<TaskSwitch
-  name="Routing backbones"
-  columns={2}
-  panels={[
-    {
-      id: "cable",
-      label: "Cable insertion",
-      clips: [
-        { src: media("videos/router/compact/cable-wan.mp4"), title: "FlexWAM (Wan)", detail: "Flexiv · scene 16", badge: "Wan", tone: "ours" },
-        { src: media("videos/router/compact/cable-lingbot.mp4"), title: "FlexWAM (LingBot)", detail: "Flexiv · scene 16", badge: "LingBot", tone: "ours" },
-      ],
-    },
-    {
-      id: "peg-l",
-      label: "Peg-in-hole (L)",
-      clips: [
-        { src: media("videos/router/compact/peg-l-wan.mp4"), title: "FlexWAM (Wan)", detail: "Flexiv · scene 19", badge: "Wan", tone: "ours" },
-        { src: media("videos/router/compact/peg-l-lingbot.mp4"), title: "FlexWAM (LingBot)", detail: "Flexiv · scene 19", badge: "LingBot", tone: "ours" },
-      ],
-    },
-    {
-      id: "peg-round",
-      label: "Peg-in-hole (round)",
-      clips: [
-        { src: media("videos/router/compact/peg-round-wan.mp4"), title: "FlexWAM (Wan)", detail: "Flexiv · scene 14", badge: "Wan", tone: "ours" },
-        { src: media("videos/router/compact/peg-round-lingbot.mp4"), title: "FlexWAM (LingBot)", detail: "Flexiv · scene 14", badge: "LingBot", tone: "ours" },
-      ],
-    },
-    {
-      id: "pencil",
-      label: "Pencil case",
-      clips: [
-        { src: media("videos/router/compact/pencil-wan.mp4"), title: "FlexWAM (Wan)", detail: "PiPER · scene 17", badge: "Wan", tone: "ours" },
-        { src: media("videos/router/compact/pencil-lingbot.mp4"), title: "FlexWAM (LingBot)", detail: "PiPER · scene 17", badge: "LingBot", tone: "ours" },
-      ],
-    },
-    {
-      id: "conveyor",
-      label: "Conveyor sorting",
-      clips: [
-        { src: media("videos/router/compact/conveyor-wan.mp4"), title: "FlexWAM (Wan)", detail: "PiPER · scene 8", badge: "Wan", tone: "ours" },
-        { src: media("videos/router/compact/conveyor-lingbot.mp4"), title: "FlexWAM (LingBot)", detail: "PiPER · scene 8", badge: "LingBot", tone: "ours" },
-      ],
-    },
-  ]}
-/>
-
-<div className="section-heading"><p className="eyebrow">Evaluation rollouts</p><h2 id="same-scene-baselines">All evaluation cases</h2></div>
-
-Complete evaluation compilations for FlexWAM (Wan), FlexWAM (LingBot), and the four baselines across all five tasks. Each video presents a representative rollout, the evaluation scenes, and per-scene outcomes. Static tasks include 20 trials per method; conveyor sorting includes 100 blocks across 10 scenes. Playback speeds are indicated within each video.
-
-<p className="routing-guide not-prose"><span>6 methods · 5 tasks</span> Browse methods horizontally. Use fullscreen to inspect individual trials in the multi-scene overview.</p>
-
-<EvaluationGallery />
 
 <div className="section-heading"><p className="eyebrow">Citation</p><h2 id="bibtex">BibTeX</h2></div>
 

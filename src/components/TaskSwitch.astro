@@ -1,5 +1,6 @@
 ---
 import Clip from "./Clip.astro";
+import { media } from "../lib/media";
 interface ClipItem {
   src: string;
   title: string;
@@ -10,6 +11,8 @@ interface ClipItem {
 interface Panel {
   id: string;
   label: string;
+  platform: string;
+  description: string;
   clips: ClipItem[];
 }
 interface Props {
@@ -29,25 +32,13 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   ]}
   data-switch={name}
 >
-  <div class="task-toolbar">
-    <div class="task-tabs" role="tablist" aria-label={name}>
-      {
-        panels.map((panel, index) => (
-          <button
-            type="button"
-            role="tab"
-            class="task-chip"
-            id={`${id}-tab-${panel.id}`}
-            data-task={panel.id}
-            aria-controls={`${id}-panel-${panel.id}`}
-            aria-selected={index === 0}
-            tabindex={index === 0 ? 0 : -1}
-          >
-            {panel.label}
-          </button>
-        ))
-      }
+  <div class="demo-heading">
+    <div>
+      <p class="demo-label">
+        {columns === 2 ? "Visual routing" : "Evaluation rollouts"}
+      </p><h3 data-demo-title>{panels[0].label}</h3>
     </div>
+    <p data-demo-description>{panels[0].description}</p>
   </div>
   {
     panels.map((panel, index) => (
@@ -57,6 +48,8 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         role="tabpanel"
         aria-labelledby={`${id}-tab-${panel.id}`}
         data-panel={panel.id}
+        data-title={panel.label}
+        data-description={panel.description}
         hidden={index !== 0}
         tabindex="0"
       >
@@ -77,6 +70,41 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         ><path d="m10 6 6 6-6 6"></path></svg
       ></button
     >
+  </div>
+  <div class="task-toolbar thumbnail-toolbar">
+    <div class="thumbnail-tabs" role="tablist" aria-label={name}>
+      {
+        panels.map((panel, index) => (
+          <button
+            type="button"
+            role="tab"
+            class="task-thumbnail"
+            id={`${id}-tab-${panel.id}`}
+            data-task={panel.id}
+            aria-controls={`${id}-panel-${panel.id}`}
+            aria-selected={index === 0}
+            tabindex={index === 0 ? 0 : -1}
+          >
+            <span class="thumbnail-image">
+              <>
+                <img
+                  src={media(`images/tasks/${panel.id}.jpg`)}
+                  alt=""
+                  width="640"
+                  height="360"
+                  loading="lazy"
+                />
+                <span class="thumbnail-marker" aria-hidden="true">
+                  ✓
+                </span>
+              </>
+            </span>
+            <span class="thumbnail-name">{panel.label}</span>
+            <span class="thumbnail-platform">{panel.platform}</span>
+          </button>
+        ))
+      }
+    </div>
   </div>
 </div>
 <script>
@@ -121,7 +149,23 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         }
       });
     });
-    new ResizeObserver(updateCarousel).observe(root);
+    const revealTab = (tab: HTMLButtonElement) => {
+      const strip = tab.parentElement!;
+      strip.scrollTo({
+        left:
+          tab.offsetLeft -
+          strip.offsetLeft -
+          (strip.clientWidth - tab.clientWidth) / 2,
+        behavior: "instant",
+      });
+    };
+    new ResizeObserver(() => {
+      updateCarousel();
+      const selected = tabs.find(
+        (tab) => tab.getAttribute("aria-selected") === "true",
+      );
+      if (selected) revealTab(selected);
+    }).observe(root);
     const select = (tab: HTMLButtonElement) => {
       tabs.forEach((item) => {
         const active = item === tab;
@@ -134,7 +178,13 @@ const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
           .querySelectorAll<HTMLElement>(".video-player")
           .forEach((player) => player.dispatchEvent(new Event("panelchange")));
       });
-      activePanel().scrollLeft = 0;
+      const selected = activePanel();
+      root.querySelector<HTMLElement>("[data-demo-title]")!.textContent =
+        selected.dataset.title || "";
+      root.querySelector<HTMLElement>("[data-demo-description]")!.textContent =
+        selected.dataset.description || "";
+      revealTab(tab);
+      selected.scrollLeft = 0;
       updateCarousel();
     };
     tabs.forEach((tab, index) => {
