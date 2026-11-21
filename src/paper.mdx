@@ -70,9 +70,9 @@ import tasks from "./assets/tasks.png";
 
 <OverviewVideo />
 
-<div className="section-heading"><h2 id="consecutive-successes">Randomized precision tests</h2><p className="section-subtitle">Consecutive successes</p></div>
+<div className="section-heading"><h2 id="consecutive-successes">Randomized precision tests</h2></div>
 
-Consecutive successful rollouts of Ethernet cable insertion and [ManipulationNet](https://manipulation-net.org/tasks/peg_in_hole.html) peg-in-hole tasks on the single-arm Flexiv. Select a sequence to watch up to four cable insertions, six L-shaped peg insertions, or five round peg insertions. Each video retains the resets between trials; the accompanying success rates summarize the full 20-trial evaluation for each method.
+We evaluate FlexWAM’s robustness to randomized target placements on peg-in-hole and cable insertion tasks.
 
 <div class="success-rollouts not-prose">
   <PrecisionTrial task="cable" />
@@ -83,7 +83,7 @@ Consecutive successful rollouts of Ethernet cable insertion and [ManipulationNet
 <section className="research-section demo-section not-prose" aria-labelledby="routing">
   <header className="chapter-heading">
     <div><p className="chapter-kicker">01 / Visual routing</p><h2 id="routing">Dynamic view weights</h2></div>
-    <p className="chapter-intro">Watch how the camera weights evolve during manipulation. Wan and LingBot rollouts show the three camera streams alongside their normalized routing weights.</p>
+    <p className="chapter-intro">FlexWAM rollouts show three camera views and their dynamic routing weights.</p>
   </header>
   <RoutingGallery />
   <p className="evidence-note">Camera labels report the current weights; the curves trace them over time. These weights act as observation-dependent priors for action-to-view attention.</p>

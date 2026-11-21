@@ -7,18 +7,18 @@ interface Props {
 const { task } = Astro.props;
 const cable = task === "cable";
 const title = cable
-  ? "Ethernet cable insertion"
+  ? "Ethernet Cable Insertion"
   : "ManipulationNet Peg-in-Hole";
 // Success rates are from the full 20-trial evaluation, not these selected clips.
 const clips = cable
   ? [
       {
         id: "cable-more",
-        label: "4 consecutive successes",
+        label: "Test sequence 1",
         ours: 75,
         baseline: 35,
       },
-      { id: "cable", label: "3 consecutive successes", ours: 75, baseline: 35 },
+      { id: "cable", label: "Test sequence 2", ours: 75, baseline: 35 },
     ]
   : [
       {
@@ -36,7 +36,7 @@ const clips = cable
     ];
 const clipTitle = (id: string) =>
   cable
-    ? "Ethernet cable insertion"
+    ? "Ethernet Cable Insertion"
     : id.includes("round")
       ? "Round Peg-in-Hole"
       : "L-shaped Peg-in-Hole";
@@ -59,13 +59,6 @@ const clipTitle = (id: string) =>
           </a>
         )
       }
-      <p class="precision-description">
-        {
-          cable
-            ? "Connector–port alignment and insertion under tight positional and angular tolerances."
-            : "L-shaped and round peg insertion at 20 μm clearance, requiring precise alignment."
-        }
-      </p>
     </div>
     <div
       class="precision-metrics"
@@ -268,7 +261,7 @@ const clipTitle = (id: string) =>
   h3 {
     margin: 0;
     color: #142d50;
-    font-size: clamp(1.25rem, 2vw, 1.65rem);
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
     line-height: 1.25;
     font-weight: 700;
     letter-spacing: -0.035em;
@@ -277,19 +270,12 @@ const clipTitle = (id: string) =>
     display: inline-block;
     margin-top: 0.5rem;
     color: #2362ca;
-    font-size: 1rem;
+    font-size: clamp(1.2rem, 2vw, 1.4rem);
     font-weight: 600;
     text-underline-offset: 0.2em;
   }
   .precision-source:hover {
     text-decoration: underline;
-  }
-  .precision-description {
-    max-width: 29rem;
-    margin: 0.65rem 0 0;
-    color: #657488;
-    font-size: 1.025rem;
-    line-height: 1.6;
   }
   .precision-metrics {
     flex-shrink: 0;
@@ -419,20 +405,6 @@ const clipTitle = (id: string) =>
     }
     strong {
       font-size: 2.6rem;
-    }
-    .precision-source {
-      display: inline-block;
-      margin-top: 0.5rem;
-      color: #2362ca;
-      font-size: 1rem;
-      font-weight: 600;
-      text-underline-offset: 0.2em;
-    }
-    .precision-source:hover {
-      text-decoration: underline;
-    }
-    .precision-description {
-      font-size: 0.975rem;
     }
   }
 </style>
